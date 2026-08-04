@@ -69,7 +69,7 @@ export default function HomePage() {
             Welcome to Changfeng’s blog
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">
-                这里是我的个人博客与作品集。记录代码、设计、Agent，以及一切让我想再多看一眼的小东西。
+                这里是我的个人博客。记录代码、设计、Agent，以及一切让我想再多看一眼的小东西。
           </p>
         </motion.div>
 

@@ -53,10 +53,23 @@ const BEIJING_FALLBACK: WeatherInfo = {
   humidity: 60,
 };
 
+async function fetchWithTimeout(url: string, timeoutMs = 9000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function fetchWeatherData(latitude: number, longitude: number) {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`,
   );
+  if (!response.ok) {
+    throw new Error("Weather request failed");
+  }
   const data = await response.json();
   const current = data?.current ?? {};
 
@@ -65,6 +78,45 @@ async function fetchWeatherData(latitude: number, longitude: number) {
     temperature: Math.round(current.temperature_2m ?? 27),
     humidity: Math.round(current.relative_humidity_2m ?? 60),
   };
+}
+
+async function fetchNominatimName(latitude: number, longitude: number) {
+  const response = await fetchWithTimeout(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1&accept-language=zh-CN`,
+  );
+  if (!response.ok) {
+    throw new Error("Nominatim request failed");
+  }
+  const data = await response.json();
+  return getLocationName(data?.address ?? {}, data?.display_name);
+}
+
+async function fetchBigDataCloudName(latitude: number, longitude: number) {
+  const response = await fetchWithTimeout(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`,
+  );
+  if (!response.ok) {
+    throw new Error("BigDataCloud request failed");
+  }
+  const data = await response.json();
+  const province = data.principalSubdivision || data.region || "";
+  const city = data.city || data.locality || "";
+  const district = data.locality || "";
+  const displayDistrict = stripRepeatedCityPrefix(district || "", city || "");
+  const parts = [province, city, displayDistrict].filter(Boolean);
+  const uniqueParts = parts.filter(
+    (part, index) => part !== parts[index - 1],
+  );
+
+  return uniqueParts.join(" ") || data.countryName || "Unknown";
+}
+
+async function fetchLocationName(latitude: number, longitude: number) {
+  try {
+    return await fetchNominatimName(latitude, longitude);
+  } catch {
+    return await fetchBigDataCloudName(latitude, longitude);
+  }
 }
 
 function getCityFromDisplayName(displayName?: string) {
@@ -137,6 +189,8 @@ export default function LcdClock() {
 
   useEffect(() => {
     let cancelled = false;
+    let hasLocation = false;
+    let weatherFailed = false;
 
     const loadBeijingWeather = async () => {
       try {
@@ -145,10 +199,10 @@ export default function LcdClock() {
           BEIJING_COORDS.longitude,
         );
         if (!cancelled) {
-          setWeather({
-            location: "北京市",
+          setWeather((current: WeatherInfo) => ({
+            location: hasLocation ? current.location : "北京市",
             ...data,
-          });
+          }));
         }
       } catch {
         if (!cancelled) {
@@ -166,31 +220,49 @@ export default function LcdClock() {
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        try {
-          const [geoResponse, weatherData] = await Promise.all([
-            fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1&accept-language=zh-CN`,
-            ),
-            fetchWeatherData(latitude, longitude),
-          ]);
-          const geoData = await geoResponse.json();
-
-          if (cancelled) {
-            return;
+        const updateWeather = async () => {
+          try {
+            const data = await fetchWeatherData(latitude, longitude);
+            if (!cancelled) {
+              setWeather((current: WeatherInfo) => ({
+                ...current,
+                ...data,
+                location:
+                  current.location && current.location !== "北京市"
+                    ? current.location
+                    : "当前位置",
+              }));
+            }
+          } catch {
+            weatherFailed = true;
+            if (!cancelled) {
+              void loadBeijingWeather();
+            }
           }
+        };
 
-          setWeather({
-            location: getLocationName(
-              geoData?.address ?? {},
-              geoData?.display_name,
-            ),
-            ...weatherData,
-          });
-        } catch {
-          if (!cancelled) {
-            void loadBeijingWeather();
+        const updateLocation = async () => {
+          try {
+            const location = await fetchLocationName(latitude, longitude);
+            if (!cancelled) {
+              hasLocation = true;
+              setWeather((current: WeatherInfo) => ({
+                ...current,
+                location,
+              }));
+            }
+          } catch {
+            if (!cancelled && !weatherFailed) {
+              setWeather((current: WeatherInfo) => ({
+                ...current,
+                location: "当前位置",
+              }));
+            }
           }
-        }
+        };
+
+        void updateWeather();
+        void updateLocation();
       },
       () => {
         if (cancelled) {

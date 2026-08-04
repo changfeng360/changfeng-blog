@@ -68,14 +68,11 @@ export default function AboutPage() {
                 <h2 className="text-2xl font-semibold tracking-tight text-ink">
                   长风
                 </h2>
-                <span className="chip pixel-font !text-[14px] text-accent-blue">
-                  INDIE DEV
-                </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-soft">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4" />
-                  Hong Kong / Remote
+                  未知
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Coffee className="h-4 w-4" />
@@ -83,9 +80,7 @@ export default function AboutPage() {
                 </span>
               </div>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink">
-                我做过设计系统、小游戏引擎，也折腾过让 Agent 更可靠的工作流。
-                比起追求炫技，我更在意界面在每一次点击里是否诚实、顺滑、
-                有一点自己的性格。
+                在CS、AI日新月异的当下，我始终保持一颗学习的心，想要拥有自己独到的见解，努力变强ing~
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {["Next.js", "TypeScript", "C++", "Agent", "Motion"].map(

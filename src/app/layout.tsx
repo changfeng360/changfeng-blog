@@ -7,9 +7,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { PlayerProvider } from "@/components/PlayerProvider";
 
 export const metadata: Metadata = {
-  title: "长风的个人博客与作品集",
+  title: "长风的个人博客",
   description:
-    "一个融合苹果式极简质感与复古像素趣味的个人博客、文章时间线与作品集。",
+    "一个融合苹果式极简质感与复古像素趣味的个人博客与文章时间线。",
 };
 
 export const viewport: Viewport = {
