@@ -7,11 +7,11 @@ export default function Footer() {
       <div className="glass flex flex-col items-center justify-between gap-4 rounded-4xl px-6 py-5 sm:flex-row">
         <div className="flex items-center gap-2 text-sm text-ink-soft">
           <span className="pixel-font text-[13px] text-ink dark:text-ink">
-            CF.BLOG
+            长风的博客
           </span>
           <span className="flex items-center gap-1">
             <Heart className="h-3.5 w-3.5 fill-accent-pink text-accent-pink" />
-            <span>2026 长风的博客</span>
+            <span>2026</span>
           </span>
         </div>
         <div className="flex items-center gap-3">

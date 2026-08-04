@@ -67,28 +67,46 @@ async function fetchWeatherData(latitude: number, longitude: number) {
   };
 }
 
-function getLocationName(address: Record<string, string | undefined>) {
+function getCityFromDisplayName(displayName?: string) {
+  if (!displayName) {
+    return "";
+  }
+
+  const cityParts = displayName
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.endsWith("市") && !part.endsWith("省"));
+
+  return cityParts[cityParts.length - 1] ?? "";
+}
+
+function getLocationName(
+  address: Record<string, string | undefined>,
+  displayName?: string,
+) {
   const province =
     address.province ||
     address.state ||
-    address.state_district ||
     address.region ||
     "";
-  const city =
+  const namedCity =
     address.city ||
-    address.town ||
-    address.village ||
-    address.municipality ||
+    address.state_district ||
+    address.municipality;
+  const city =
+    (namedCity?.endsWith("市") ? namedCity : undefined) ||
+    getCityFromDisplayName(displayName) ||
+    namedCity;
+  const district =
+    address.city_district ||
     address.county ||
-    address.district ||
-    "";
-  const parts = [province, city].filter(Boolean);
+    address.district;
+  const parts = [province, city, district].filter(Boolean);
+  const uniqueParts = parts.filter(
+    (part, index) => part !== parts[index - 1],
+  );
 
-  if (parts.length > 1 && parts[0] === parts[1]) {
-    return parts[0];
-  }
-
-  return parts.join(" ") || address.country || "Unknown";
+  return uniqueParts.join(" ") || address.country || "Unknown";
 }
 
 function pad(value: number) {
@@ -139,7 +157,7 @@ export default function LcdClock() {
         try {
           const [geoResponse, weatherData] = await Promise.all([
             fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=zh-CN`,
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1&accept-language=zh-CN`,
             ),
             fetchWeatherData(latitude, longitude),
           ]);
@@ -150,7 +168,10 @@ export default function LcdClock() {
           }
 
           setWeather({
-            location: getLocationName(geoData?.address ?? {}),
+            location: getLocationName(
+              geoData?.address ?? {},
+              geoData?.display_name,
+            ),
             ...weatherData,
           });
         } catch {
