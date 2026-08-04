@@ -1,8 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Github } from "lucide-react";
+import { ArrowUpRight, Github, Pencil } from "lucide-react";
+import AdminInlineEditor, {
+  type AdminField,
+} from "@/components/admin/AdminInlineEditor";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Project } from "@/data/content";
 import { fadeUp, SPRING_SOFT } from "@/lib/motion";
 
@@ -15,7 +20,27 @@ const accentStyles: Record<string, string> = {
   gold: "bg-yellow-100 text-yellow-700",
 };
 
-export default function ProjectCard({ project }: { project: Project }) {
+export default function ProjectCard({
+  project,
+  onSave,
+}: {
+  project: Project;
+  onSave?: (project: Project) => Promise<void>;
+}) {
+  const { editMode } = useAdmin();
+  const [editing, setEditing] = useState(false);
+
+  const fields: AdminField[] = [
+    { name: "name", label: "Name" },
+    { name: "year", label: "Year" },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "stack", label: "Stack", type: "array" },
+    { name: "icon", label: "Icon" },
+    { name: "accent", label: "Accent" },
+    { name: "github", label: "GitHub URL" },
+    { name: "website", label: "Website URL" },
+  ];
+
   return (
     <motion.article
       variants={fadeUp}
@@ -25,6 +50,18 @@ export default function ProjectCard({ project }: { project: Project }) {
       className="card-hover glass rounded-4xl"
     >
       <div className="flex h-full flex-col p-6 sm:p-7">
+        {editing ? (
+          <AdminInlineEditor
+            title={`Edit ${project.name}`}
+            fields={fields}
+            data={project as unknown as Record<string, unknown>}
+            onSave={async (data) => {
+              await onSave?.(data as unknown as Project);
+              setEditing(false);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : null}
         <div className="flex items-start justify-between gap-4">
           <span
             className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-black/5 font-mono text-lg font-bold shadow-apple-sm ${accentStyles[project.accent] ?? "bg-white text-ink"}`}
@@ -32,6 +69,16 @@ export default function ProjectCard({ project }: { project: Project }) {
             {project.icon}
           </span>
           <div className="flex gap-1">
+            {editMode ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="icon-button !h-9 !w-9"
+                aria-label={`Edit ${project.name}`}
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            ) : null}
             <Link
               href={project.github}
               target="_blank"

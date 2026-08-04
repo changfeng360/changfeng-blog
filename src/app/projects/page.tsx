@@ -4,13 +4,16 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import ProjectCard from "@/components/ProjectCard";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Project } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
 import projectsJson from "../../../content/projects.json";
 
-const projects = projectsJson as Project[];
-
 export default function ProjectsPage() {
+  const { api } = useAdmin();
+  const [projects, setProjects] = useState<Project[]>(
+    projectsJson as Project[],
+  );
   const allTags = useMemo(
     () => Array.from(new Set(projects.flatMap((project) => project.stack))),
     [],
@@ -57,9 +60,23 @@ export default function ProjectsPage() {
           animate="visible"
           className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {visible.map((project) => (
-            <ProjectCard key={project.name} project={project} />
-          ))}
+          {projects.map((project, index) =>
+            visible.includes(project) ? (
+              <ProjectCard
+                key={project.name}
+                project={project}
+                onSave={async (updated) => {
+                  const next = [...projects];
+                  next[index] = updated;
+                  await api("data/projects", {
+                    method: "PUT",
+                    body: JSON.stringify(next),
+                  });
+                  setProjects(next);
+                }}
+              />
+            ) : null,
+          )}
         </motion.div>
       </div>
     </div>

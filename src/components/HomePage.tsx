@@ -10,6 +10,7 @@ import {
   Coffee,
   Mail,
   Package,
+  Pencil,
   Star,
   UserRound,
 } from "lucide-react";
@@ -19,6 +20,8 @@ import MusicPlayer from "@/components/MusicPlayer";
 import PixelAvatar from "@/components/PixelAvatar";
 import PixelCalendar from "@/components/PixelCalendar";
 import PostCard from "@/components/PostCard";
+import ProfileEditor from "@/components/admin/ProfileEditor";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Post, Profile } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 
@@ -40,10 +43,13 @@ export default function HomePage({
     { href: "/projects", label: "项目档案", meta: "06 builds", icon: Star },
     { href: "/about", label: "关于我", meta: "01 profile", icon: UserRound },
   ];
+  const { editMode } = useAdmin();
+  const [currentProfile, setCurrentProfile] = useState(profile);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
 
   const copyEmail = async () => {
-    const email = profile.email;
+    const email = currentProfile.email;
     try {
       await navigator.clipboard.writeText(email);
     } catch {
@@ -89,6 +95,16 @@ export default function HomePage({
             className="glass min-h-[480px] rounded-5xl p-6 sm:col-span-2 sm:row-span-2 sm:p-10"
           >
             <div className="flex h-full flex-col">
+              {editingProfile ? (
+                <ProfileEditor
+                  profile={currentProfile}
+                  onSaved={(profile) => {
+                    setCurrentProfile(profile);
+                    setEditingProfile(false);
+                  }}
+                  onCancel={() => setEditingProfile(false)}
+                />
+              ) : null}
               <div className="flex flex-wrap items-start justify-between gap-5">
                 <div className="shrink-0">
                   <MusicPlayer />
@@ -99,9 +115,19 @@ export default function HomePage({
                       HELLO WORLD
                     </span>
                     <span className="mt-3 block text-lg font-medium text-ink-soft">
-                      {profile.name}
+                      {currentProfile.name}
                     </span>
                   </div>
+                  {editMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditingProfile(true)}
+                      className="icon-button !h-9 !w-9"
+                      aria-label="Edit profile"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  ) : null}
                   <PixelAvatar
                     size={88}
                     className="h-16 w-16 sm:h-[88px] sm:w-[88px]"
@@ -110,13 +136,13 @@ export default function HomePage({
               </div>
 
               <p className="mt-6 max-w-full text-lg leading-relaxed text-ink sm:mt-8">
-                {profile.intro}
+                {currentProfile.intro}
               </p>
 
               <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-6 sm:pt-8">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
-                    href={profile.github}
+                    href={currentProfile.github}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex h-11 items-center gap-2.5 rounded-full bg-black px-4 text-sm font-semibold text-white shadow-apple-sm transition-transform duration-150 ease-out active:scale-95 hover:-translate-y-0.5"
@@ -133,7 +159,7 @@ export default function HomePage({
                     GitHub
                   </Link>
                   <Link
-                    href={profile.bilibili}
+                    href={currentProfile.bilibili}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex h-11 items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-ink shadow-apple-sm transition-transform duration-150 ease-out active:scale-95 hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"

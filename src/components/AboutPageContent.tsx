@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -9,10 +10,13 @@ import {
   Cpu,
   MapPin,
   Palette,
+  Pencil,
   Sparkles,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PixelAvatar from "@/components/PixelAvatar";
+import ProfileEditor from "@/components/admin/ProfileEditor";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Profile } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 
@@ -42,12 +46,16 @@ export default function AboutPageContent({
 }: {
   profile: Profile;
 }) {
+  const { editMode } = useAdmin();
+  const [current, setCurrent] = useState(profile);
+  const [editing, setEditing] = useState(false);
+
   return (
     <div className="pb-8">
       <PageHeader
         eyebrow="04 // PROFILE"
         title="关于我"
-        description={profile.aboutDescription}
+        description={current.aboutDescription}
       />
 
       <motion.section
@@ -60,6 +68,16 @@ export default function AboutPageContent({
           variants={fadeUp}
           className="glass rounded-5xl p-8 sm:p-10"
         >
+          {editing ? (
+            <ProfileEditor
+              profile={current}
+              onSaved={(profile) => {
+                setCurrent(profile);
+                setEditing(false);
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          ) : null}
           <div className="flex flex-col gap-8 md:flex-row md:items-start">
             <div className="shrink-0">
               <PixelAvatar
@@ -70,24 +88,34 @@ export default function AboutPageContent({
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-2xl font-semibold tracking-tight text-ink">
-                  {profile.name}
+                  {current.name}
                 </h2>
+                {editMode ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="icon-button !h-9 !w-9"
+                    aria-label="Edit profile"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                ) : null}
               </div>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-soft">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4" />
-                  {profile.location}
+                  {current.location}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Coffee className="h-4 w-4" />
-                  {profile.coffee}
+                  {current.coffee}
                 </span>
               </div>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink">
-                {profile.tagline}
+                {current.tagline}
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {profile.tags.map(
+                {current.tags.map(
                   (tag) => (
                     <span key={tag} className="chip pixel-font !text-[14px]">
                       #{tag}
@@ -109,7 +137,7 @@ export default function AboutPageContent({
               <h3 className="text-lg font-semibold text-ink">技能雷达</h3>
             </div>
             <div className="mt-6 space-y-5">
-              {profile.skills.map((skill) => (
+              {current.skills.map((skill) => (
                 <div key={skill.name}>
                   <div className="mb-2 flex items-center justify-between text-sm">
                     <span className="font-medium text-ink">{skill.name}</span>

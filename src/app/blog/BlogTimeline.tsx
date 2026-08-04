@@ -3,8 +3,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, Clock3 } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Clock3,
+  Pencil,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import AdminInlineEditor, {
+  type AdminField,
+} from "@/components/admin/AdminInlineEditor";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Post } from "@/data/content";
 import { fadeUp, SPRING_SOFT, staggerContainer } from "@/lib/motion";
 
@@ -25,15 +34,82 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
+function splitMdx(raw: string) {
+  const match = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+  return {
+    frontmatter: match?.[1] ?? "",
+    body: match?.[2]?.trim() ?? raw,
+  };
+}
+
+function serializePost(post: Post, body: string) {
+  const tags = post.tags.map((tag) => `  - ${tag}`).join("\n");
+  const featured = post.featured ? "featured: true\n" : "";
+  return `---\ntitle: "${post.title}"\nslug: ${post.slug}\nexcerpt: "${post.excerpt}"\ndate: ${post.date}\nreadTime: "${post.readTime}"\nemoji: "${post.emoji}"\ntags:\n${tags}\n${featured}---\n\n${body}\n`;
+}
+
 export default function BlogTimeline({ posts }: { posts: Post[] }) {
+  const { editMode, api } = useAdmin();
+  const [postList, setPostList] = useState(posts);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<Record<string, unknown> | null>(
+    null,
+  );
   const [range, setRange] = useState<RangeKey>("月");
 
   const filtered = useMemo(() => {
     const cutoff = Date.now() - ranges[range] * 24 * 60 * 60 * 1000;
-    return posts.filter((post) => new Date(post.date).getTime() >= cutoff);
-  }, [posts, range]);
+    return postList.filter((post) => new Date(post.date).getTime() >= cutoff);
+  }, [postList, range]);
 
-  const visible = filtered.length > 0 ? filtered : posts;
+  const visible = filtered.length > 0 ? filtered : postList;
+
+  const fields: AdminField[] = [
+    { name: "title", label: "Title" },
+    { name: "excerpt", label: "Excerpt", type: "textarea" },
+    { name: "date", label: "Date" },
+    { name: "readTime", label: "Read time" },
+    { name: "emoji", label: "Emoji" },
+    { name: "featured", label: "Featured", type: "checkbox" },
+    { name: "tags", label: "Tags", type: "array" },
+    { name: "body", label: "Body", type: "textarea" },
+  ];
+
+  const startEdit = async (slug: string) => {
+    try {
+      const post = await api(`posts/${slug}`);
+      const raw = post as { content: string };
+      const parsed = splitMdx(raw.content);
+      const current = postList.find((item) => item.slug === slug);
+      if (!current) {
+        return;
+      }
+      setEditingSlug(slug);
+      setEditingData({
+        ...current,
+        body: parsed.body,
+      } as unknown as Record<string, unknown>);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const savePost = async (data: Record<string, unknown>) => {
+    if (!editingSlug) {
+      return;
+    }
+    const draft = data as unknown as Post & { body: string };
+    const content = serializePost(draft, draft.body);
+    await api(`posts/${editingSlug}`, {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    });
+    setPostList((current) =>
+      current.map((post) => (post.slug === editingSlug ? draft : post)),
+    );
+    setEditingSlug(null);
+    setEditingData(null);
+  };
 
   return (
     <div className="pb-8">
@@ -84,6 +160,18 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
               className="absolute -left-8 top-5 h-4 w-4 border-2 border-pixel-ink bg-pixel-gold shadow-pixel-sm sm:-left-10"
             />
             <article className="glass rounded-4xl p-6 sm:p-7">
+              {editingSlug === post.slug && editingData ? (
+                <AdminInlineEditor
+                  title={`Edit ${post.slug}`}
+                  fields={fields}
+                  data={editingData}
+                  onSave={savePost}
+                  onCancel={() => {
+                    setEditingSlug(null);
+                    setEditingData(null);
+                  }}
+                />
+              ) : null}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span className="flex items-center gap-1.5 text-xs text-ink-soft">
                   <CalendarDays className="h-3.5 w-3.5" />
@@ -100,6 +188,16 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
                     </span>
                   ))}
                 </span>
+                {editMode ? (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(post.slug)}
+                    className="icon-button !h-8 !w-8"
+                    aria-label={`Edit ${post.slug}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
               </div>
               <h2 className="mt-4 text-xl font-semibold leading-snug tracking-tight text-ink sm:text-2xl">
                 {post.title}

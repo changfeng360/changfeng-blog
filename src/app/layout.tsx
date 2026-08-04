@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import { SettingsProvider } from "@/components/SettingsProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { PlayerProvider } from "@/components/PlayerProvider";
+import { AdminProvider } from "@/components/admin/AdminContext";
+import AdminFloating from "@/components/admin/AdminFloating";
 import { getSiteSettings } from "@/lib/site";
 
 const siteSettings = getSiteSettings();
@@ -37,20 +39,23 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" style={siteStyle}>
       <body className="min-h-screen font-sans antialiased">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:shadow-apple"
-        >
-          跳到主要内容
-        </a>
-        <SettingsProvider>
-          <PlayerProvider>
-            <Nav />
-            <main id="main">{children}</main>
-            <Footer />
-            <ThemeToggle />
-          </PlayerProvider>
-        </SettingsProvider>
+        <AdminProvider>
+          <SettingsProvider>
+            <PlayerProvider>
+              <a
+                href="#main"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:shadow-apple"
+              >
+                跳到主要内容
+              </a>
+              <Nav />
+              <main id="main">{children}</main>
+              <Footer />
+              <ThemeToggle />
+              <AdminFloating />
+            </PlayerProvider>
+          </SettingsProvider>
+        </AdminProvider>
       </body>
     </html>
   );

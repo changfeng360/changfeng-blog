@@ -5,24 +5,32 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight,
+  Pencil,
   Plus,
   Search,
   Star,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import AdminInlineEditor, {
+  type AdminField,
+} from "@/components/admin/AdminInlineEditor";
+import { useAdmin } from "@/components/admin/AdminContext";
 import type { Friend } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import friendsJson from "../../../content/friends.json";
 
-const friends = friendsJson as Friend[];
-
 export default function SharePage() {
+  const { editMode, api } = useAdmin();
+  const [friends, setFriends] = useState<Friend[]>(
+    friendsJson as Friend[],
+  );
+  const [editingName, setEditingName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("全部");
 
   const categories = useMemo(
     () => ["全部", ...Array.from(new Set(friends.map((friend) => friend.category)))],
-    [],
+    [friends],
   );
 
   const visible = useMemo(() => {
@@ -37,7 +45,7 @@ export default function SharePage() {
         friend.tags.some((tag) => tag.toLowerCase().includes(keyword));
       return matchCategory && matchQuery;
     });
-  }, [query, category]);
+  }, [friends, query, category]);
 
   return (
     <div className="pb-8">
@@ -86,12 +94,50 @@ export default function SharePage() {
           animate="visible"
           className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {visible.map((friend) => (
+          {visible.map((friend) => {
+            const index = friends.indexOf(friend);
+            const fields: AdminField[] = [
+              { name: "name", label: "Name" },
+              { name: "description", label: "Description", type: "textarea" },
+              { name: "url", label: "URL" },
+              { name: "category", label: "Category" },
+              { name: "rating", label: "Rating", type: "number" },
+              { name: "tags", label: "Tags", type: "array" },
+            ];
+            return (
             <motion.article
               key={friend.name}
               variants={fadeUp}
-              className="card-hover glass rounded-4xl"
+              className="card-hover glass relative rounded-4xl"
             >
+              {editingName === friend.name ? (
+                <AdminInlineEditor
+                  title={`Edit ${friend.name}`}
+                  fields={fields}
+                  data={friend as unknown as Record<string, unknown>}
+                  onSave={async (data) => {
+                    const next = [...friends];
+                    next[index] = data as unknown as Friend;
+                    await api("data/friends", {
+                      method: "PUT",
+                      body: JSON.stringify(next),
+                    });
+                    setFriends(next);
+                    setEditingName(null);
+                  }}
+                  onCancel={() => setEditingName(null)}
+                />
+              ) : null}
+              {editMode ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingName(friend.name)}
+                  className="icon-button absolute right-14 top-5 z-20 !h-9 !w-9"
+                  aria-label={`Edit ${friend.name}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              ) : null}
               <Link
                 href={friend.url}
                 target="_blank"
@@ -131,7 +177,8 @@ export default function SharePage() {
                 </div>
               </Link>
             </motion.article>
-          ))}
+            );
+          })}
 
           <motion.article
             variants={fadeUp}
