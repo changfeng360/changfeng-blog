@@ -2,7 +2,7 @@
   "name": "changfeng-blog",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "pnpm@10.11.1",
   "engines": {
     "node": ">=18.18.0"
   },
