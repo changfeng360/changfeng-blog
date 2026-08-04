@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   reactStrictMode: true,
   devIndicators: false,
   async redirects() {
