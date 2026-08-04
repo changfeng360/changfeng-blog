@@ -10,8 +10,11 @@ import {
   Star,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { friends } from "@/data/content";
+import type { Friend } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
+import friendsJson from "../../../content/friends.json";
+
+const friends = friendsJson as Friend[];
 
 export default function SharePage() {
   const [query, setQuery] = useState("");

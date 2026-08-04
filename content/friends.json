@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Vercel",
+    "description": "部署最快的前端平台，也是我的网站栖身之所。",
+    "url": "https://vercel.com",
+    "category": "Platform",
+    "rating": 5,
+    "tags": ["Deploy", "Edge"]
+  },
+  {
+    "name": "Dribbble",
+    "description": "随手翻翻就能找到让界面变好看的灵感。",
+    "url": "https://dribbble.com",
+    "category": "Inspiration",
+    "rating": 4,
+    "tags": ["Design", "Shot"]
+  },
+  {
+    "name": "CSS-Tricks",
+    "description": "CSS 疑难杂症的长期解决方案供应商。",
+    "url": "https://css-tricks.com",
+    "category": "Reading",
+    "rating": 5,
+    "tags": ["CSS", "Frontend"]
+  },
+  {
+    "name": "Astro",
+    "description": "内容型网站的新一代框架，静得快，也玩得花。",
+    "url": "https://astro.build",
+    "category": "Tooling",
+    "rating": 4,
+    "tags": ["Framework", "Static"]
+  },
+  {
+    "name": "GitHub",
+    "description": "像素猫的老家，也是我大部分代码的存放地。",
+    "url": "https://github.com",
+    "category": "Platform",
+    "rating": 5,
+    "tags": ["Code", "Community"]
+  },
+  {
+    "name": "OpenAI",
+    "description": "正在和我一起写代码、改样式、想段子的重要伙伴。",
+    "url": "https://openai.com",
+    "category": "AI",
+    "rating": 5,
+    "tags": ["Agent", "LLM"]
+  }
+]

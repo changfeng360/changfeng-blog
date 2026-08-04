@@ -4,8 +4,11 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import ProjectCard from "@/components/ProjectCard";
-import { projects } from "@/data/content";
+import type { Project } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
+import projectsJson from "../../../content/projects.json";
+
+const projects = projectsJson as Project[];
 
 export default function ProjectsPage() {
   const allTags = useMemo(

@@ -5,6 +5,17 @@ import Footer from "@/components/Footer";
 import { SettingsProvider } from "@/components/SettingsProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { PlayerProvider } from "@/components/PlayerProvider";
+import { getSiteSettings } from "@/lib/site";
+
+const siteSettings = getSiteSettings();
+
+const siteStyle = {
+  "--site-base-size": `${siteSettings.baseFontSize}px`,
+  "--site-accent": siteSettings.accentColor,
+  "--site-bg": siteSettings.backgroundColor,
+  "--site-dark-bg": siteSettings.darkBackground,
+  "--site-heading-style": siteSettings.headingItalic ? "italic" : "normal",
+} as React.CSSProperties;
 
 export const metadata: Metadata = {
   title: "长风的个人博客",
@@ -24,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" style={siteStyle}>
       <body className="min-h-screen font-sans antialiased">
         <a
           href="#main"

@@ -29,6 +29,23 @@ export type Friend = {
   tags: string[];
 };
 
+export type Profile = {
+  name: string;
+  location: string;
+  coffee: string;
+  aboutDescription: string;
+  tagline: string;
+  intro: string;
+  email: string;
+  github: string;
+  bilibili: string;
+  tags: string[];
+  skills: {
+    name: string;
+    level: number;
+  }[];
+};
+
 export const posts: Post[] = [
   {
     slug: "pixel-apple-blog",

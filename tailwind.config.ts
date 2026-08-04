@@ -13,7 +13,7 @@ const config: Config = {
         },
         paper: "#f5f5f7",
         accent: {
-          blue: "#0071e3",
+          blue: "var(--site-accent)",
           mint: "#6ed3b6",
           tangerine: "#ff9f0a",
           pink: "#ff375f",
