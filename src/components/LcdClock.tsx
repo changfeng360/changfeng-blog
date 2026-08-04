@@ -80,6 +80,18 @@ function getCityFromDisplayName(displayName?: string) {
   return cityParts[cityParts.length - 1] ?? "";
 }
 
+function stripRepeatedCityPrefix(district: string, city: string) {
+  const cityBase = city.replace(/市$/, "");
+  if (
+    cityBase &&
+    district.startsWith(cityBase) &&
+    district.endsWith("区")
+  ) {
+    return district.slice(cityBase.length);
+  }
+  return district;
+}
+
 function getLocationName(
   address: Record<string, string | undefined>,
   displayName?: string,
@@ -98,10 +110,10 @@ function getLocationName(
     getCityFromDisplayName(displayName) ||
     namedCity;
   const district =
-    address.city_district ||
     address.county ||
     address.district;
-  const parts = [province, city, district].filter(Boolean);
+  const displayDistrict = stripRepeatedCityPrefix(district || "", city);
+  const parts = [province, city, displayDistrict].filter(Boolean);
   const uniqueParts = parts.filter(
     (part, index) => part !== parts[index - 1],
   );
