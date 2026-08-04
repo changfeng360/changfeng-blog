@@ -1,0 +1,28 @@
+---
+title: "Framer Motion 弹簧动效实践清单"
+slug: framer-motion-springs
+excerpt: "从阻尼和响应到速度交接，整理一套可以直接抄的苹果式流体动效写法。"
+date: 2026-06-28
+readTime: "7 min"
+emoji: "🌊"
+tags:
+  - Motion
+  - React
+  - Framer
+---
+
+# Framer Motion 弹簧动效实践清单
+
+从阻尼和响应到速度交接，整理一套可以直接抄的苹果式流体动效写法。
+
+## 弹簧参数
+
+小幅移动用轻柔的 spring，大范围切换用更快的 spring，速度感会完全不同。
+
+## 速度交接
+
+多个元素连续出现时，让位移方向一致，避免出现杂乱的反向运动。
+
+## 尊重用户
+
+开启 reduced motion 后，应该把位移动效降级为淡入淡出。
