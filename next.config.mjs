@@ -5,19 +5,8 @@ const nextConfig = {
   output: 'export',
   reactStrictMode: true,
   devIndicators: false,
-  async redirects() {
-    if (process.env.NODE_ENV !== "production") {
-      return [];
-    }
-    return [
-      {
-        source: "/admin/:path*",
-        destination: "/404",
-        permanent: false,
-      },
-    ];
-  },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
