@@ -112,7 +112,7 @@ function getLocationName(
   const district =
     address.county ||
     address.district;
-  const displayDistrict = stripRepeatedCityPrefix(district || "", city);
+  const displayDistrict = stripRepeatedCityPrefix(district || "", city || "");
   const parts = [province, city, displayDistrict].filter(Boolean);
   const uniqueParts = parts.filter(
     (part, index) => part !== parts[index - 1],
