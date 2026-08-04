@@ -58,7 +58,10 @@ export default function AboutPage() {
         >
           <div className="flex flex-col gap-8 md:flex-row md:items-start">
             <div className="shrink-0">
-              <PixelAvatar size={128} />
+              <PixelAvatar
+                size={128}
+                className="h-24 w-24 sm:h-32 sm:w-32"
+              />
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">

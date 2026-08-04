@@ -28,6 +28,7 @@ export default function Nav() {
       initial={{ y: -24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={SPRING_SOFT}
+      layoutRoot
       className="fixed inset-x-0 top-4 z-50 flex justify-center px-4"
     >
       <nav className="glass-nav flex h-14 items-center gap-1 rounded-full px-2 sm:gap-2 sm:px-3">

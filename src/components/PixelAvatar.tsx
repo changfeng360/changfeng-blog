@@ -2,9 +2,13 @@ import Image from "next/image";
 
 type PixelAvatarProps = {
   size?: number;
+  className?: string;
 };
 
-export default function PixelAvatar({ size = 96 }: PixelAvatarProps) {
+export default function PixelAvatar({
+  size = 96,
+  className,
+}: PixelAvatarProps) {
   return (
     <Image
       src="/pixels/avatar-circle.png"
@@ -12,7 +16,7 @@ export default function PixelAvatar({ size = 96 }: PixelAvatarProps) {
       width={size}
       height={size}
       priority
-      className="rounded-full object-cover"
+      className={`rounded-full object-cover ${className ?? ""}`}
     />
   );
 }

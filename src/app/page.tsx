@@ -81,7 +81,7 @@ export default function HomePage() {
         >
           <motion.div
             variants={fadeUp}
-            className="glass min-h-[480px] rounded-5xl p-8 sm:col-span-2 sm:row-span-2 sm:p-10"
+            className="glass min-h-[480px] rounded-5xl p-6 sm:col-span-2 sm:row-span-2 sm:p-10"
           >
             <div className="flex h-full flex-col">
               <div className="flex flex-wrap items-start justify-between gap-5">
@@ -97,15 +97,18 @@ export default function HomePage() {
                       长风
                     </span>
                   </div>
-                  <PixelAvatar size={88} />
+                  <PixelAvatar
+                    size={88}
+                    className="h-16 w-16 sm:h-[88px] sm:w-[88px]"
+                  />
                 </div>
               </div>
 
-              <p className="mt-8 max-w-full text-lg leading-relaxed text-ink">
+              <p className="mt-6 max-w-full text-lg leading-relaxed text-ink sm:mt-8">
                 你好，欢迎来到我的个人博客，我会在这里记录我的学习生活，分享一些有意思的内容。感兴趣的话可以从下方的渠道了解我<span className="whitespace-nowrap">哦~</span>
               </p>
 
-              <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-8">
+              <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-6 sm:pt-8">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href="https://github.com/changfeng360"
@@ -128,7 +131,7 @@ export default function HomePage() {
                     href="https://space.bilibili.com/1535776199?spm_id_from=333.1007.0.0"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-11 items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-ink shadow-apple-sm transition-transform duration-150 ease-out active:scale-95 hover:-translate-y-0.5"
+                    className="inline-flex h-11 items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-ink shadow-apple-sm transition-transform duration-150 ease-out active:scale-95 hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-white"
                     aria-label="Bilibili"
                   >
                     <Image

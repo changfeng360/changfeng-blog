@@ -85,10 +85,10 @@ export default function MusicPlayer() {
       </button>
 
       <div
-        className={`absolute left-16 top-1/2 flex h-14 -translate-y-1/2 items-center overflow-hidden rounded-full border border-white/60 bg-white/70 shadow-apple-hover backdrop-blur-2xl transition-all duration-300 ease-out dark:border-white/10 dark:bg-white/10 ${
+        className={`absolute left-0 top-14 z-20 flex h-12 max-w-[calc(100vw-3rem)] items-center overflow-hidden rounded-full border border-white/60 bg-white/70 shadow-apple-hover backdrop-blur-2xl transition-all duration-300 ease-out dark:border-white/10 dark:bg-white/10 sm:left-16 sm:top-1/2 sm:h-14 sm:-translate-y-1/2 ${
           expanded
-            ? "w-[276px] opacity-100"
-            : "pointer-events-none w-0 opacity-0"
+            ? "w-[236px] opacity-100 sm:w-[276px]"
+            : "pointer-events-none w-0 opacity-0 sm:w-0"
         }`}
         data-player-strip={expanded ? "expanded" : "collapsed"}
       >

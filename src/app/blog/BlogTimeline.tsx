@@ -50,7 +50,7 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
               key={key}
               type="button"
               onClick={() => setRange(key)}
-              className={`relative h-9 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
+              className={`relative h-9 rounded-full px-3 text-sm font-medium transition-colors duration-200 sm:px-4 ${
                 range === key ? "text-ink" : "text-ink-soft hover:text-ink"
               }`}
             >
