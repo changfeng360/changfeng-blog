@@ -216,7 +216,7 @@ export default function HomePage() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="group flex items-center gap-3 rounded-2xl border border-black/5 bg-white/55 p-3 transition-transform duration-200 ease-out hover:-translate-y-0.5"
+                      className="group flex items-center gap-3 rounded-2xl border border-white/60 bg-white/45 p-3 shadow-apple-sm backdrop-blur-xl transition-transform duration-200 ease-out hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10"
                     >
                       <Icon className="h-4 w-4 text-ink-soft" />
                       <span className="text-sm font-medium text-ink">

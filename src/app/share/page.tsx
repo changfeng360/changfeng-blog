@@ -46,7 +46,7 @@ export default function SharePage() {
 
       <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-8">
         <div className="glass flex flex-col gap-4 rounded-4xl p-5 sm:flex-row sm:items-center">
-          <label className="flex min-w-0 flex-1 items-center gap-3 rounded-full border border-black/5 bg-white/70 px-4 py-3 shadow-apple-sm">
+          <label className="flex min-w-0 flex-1 items-center gap-3 rounded-full border border-white/60 bg-white/45 px-4 py-3 shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
             <Search className="h-4 w-4 shrink-0 text-ink-soft" />
             <input
               type="search"
@@ -132,7 +132,7 @@ export default function SharePage() {
 
           <motion.article
             variants={fadeUp}
-            className="rounded-4xl border-2 border-dashed border-pixel-ink/25 bg-white/30"
+            className="rounded-4xl border-2 border-dashed border-white/60 bg-white/35 shadow-apple-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/10"
           >
             <Link
               href="mailto:changfeng360@gmail.com"

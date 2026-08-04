@@ -140,7 +140,7 @@ export default function AboutPage() {
                 return (
                   <div
                     key={item.title}
-                    className="flex gap-3 rounded-2xl border border-black/5 bg-white/55 p-4"
+                    className="flex gap-3 rounded-2xl border border-white/60 bg-white/45 p-4 shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10"
                   >
                     <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${item.accent}`} />
                     <div>
