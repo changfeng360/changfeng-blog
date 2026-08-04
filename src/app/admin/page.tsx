@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   FileText,
   LogIn,
@@ -263,6 +264,9 @@ export default function AdminPage() {
         >
           Sign out
         </button>
+        <Link href="/" className="chip hover:bg-white">
+          Open site
+        </Link>
       </div>
 
       {status ? (
