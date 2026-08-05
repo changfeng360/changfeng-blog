@@ -87,7 +87,7 @@ async function compressImage(file: File): Promise<string> {
   );
   let width = Math.max(1, Math.round(image.naturalWidth * scale));
   let height = Math.max(1, Math.round(image.naturalHeight * scale));
-  let canvas = document.createElement("canvas");
+  const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   let context = canvas.getContext("2d");
