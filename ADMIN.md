@@ -66,4 +66,4 @@ pnpm dlx wrangler pages dev out
 
 ## Apple Emoji
 
-网站已内置 Apple Emoji：`pnpm install` 时会从 `emoji-datasource` 提取一张苹果表情精灵图和坐标映射到 `public/emoji/`，留言编辑器和留言内容会自动显示苹果风格表情，不需要手动安装字体。
+网站已内置 Apple Emoji：启动或构建时会自动从 CDN 拉取一张苹果表情精灵图和坐标映射到 `public/emoji/`，留言编辑器和留言内容会自动显示苹果风格表情，不需要手动安装字体。
