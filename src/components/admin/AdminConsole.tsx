@@ -918,7 +918,7 @@ export default function AdminConsole() {
             </section>
           ) : null}
 
-          {section === "style" && site && siteDraft ? (
+          {section === "style" && siteDraft ? (
             <section className="space-y-5">
               <SectionHeading
                 title="站点样式"
