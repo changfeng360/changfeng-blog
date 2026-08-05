@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 import {
   MessageSquare,
   Reply,
@@ -13,6 +12,7 @@ import {
 import { useAdmin } from "@/components/admin/AdminContext";
 import RichText from "@/components/RichText";
 import RichTextEditor from "@/components/RichTextEditor";
+import AdminModal from "@/components/admin/AdminModal";
 
 type GuestReply = {
   id: string;
@@ -56,6 +56,7 @@ export default function Guestbook() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
   const [nickname, setNickname] = useState("");
   const [content, setContent] = useState("");
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
@@ -83,13 +84,12 @@ export default function Guestbook() {
     loadMessages();
   }, []);
 
-  async function postMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function postMessage() {
     if (busy) {
       return;
     }
-    if (!nickname.trim() || !content.trim()) {
-      setError("请填写昵称和留言内容");
+    if (!content.trim() || (!isAdmin && !nickname.trim())) {
+      setError(isAdmin ? "请填写留言内容" : "请填写昵称和留言内容");
       return;
     }
     setBusy(true);
@@ -114,6 +114,7 @@ export default function Guestbook() {
       setMessages(data.messages || []);
       setNickname("");
       setContent("");
+      setModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发表失败");
     } finally {
@@ -231,49 +232,25 @@ export default function Guestbook() {
             在这里留下你的足迹~
           </p>
         </div>
-        <span className="chip pixel-font !text-[12px] text-ink-soft">
-          {messages.length} MESSAGES
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="chip pixel-font !text-[12px] text-ink-soft">
+            {messages.length} MESSAGES
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setModalOpen(true);
+            }}
+            className="pixel-btn rounded-full px-5 py-3"
+          >
+            <MessageSquare className="h-4 w-4" />
+            留言
+          </button>
+        </div>
       </div>
 
       <div className="glass rounded-5xl p-6 sm:p-8">
-        <form onSubmit={postMessage} className="grid gap-3 sm:grid-cols-[220px_1fr_auto]">
-          {isAdmin ? (
-            <span className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-              <ShieldCheck className="h-4 w-4 text-accent-pink" />
-              长风
-            </span>
-          ) : (
-            <input
-              type="text"
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              placeholder="昵称"
-              maxLength={30}
-              className={inputClass}
-            />
-          )}
-          <RichTextEditor
-            value={content}
-            onChange={setContent}
-            placeholder="想说的话..."
-            rows={3}
-            maxLength={1000}
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="pixel-btn self-start rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60 sm:self-stretch"
-          >
-            <Send className="h-4 w-4" />
-            {busy ? "Sending" : "发表"}
-          </button>
-        </form>
-
-        {error ? (
-          <p className="mt-4 text-sm text-accent-pink">{error}</p>
-        ) : null}
-
         <div className="mt-8 space-y-5">
           {loaded && messages.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-white/50 bg-white/30 p-8 text-center backdrop-blur-xl dark:border-white/15 dark:bg-white/10">
@@ -308,6 +285,58 @@ export default function Guestbook() {
           ))}
         </div>
       </div>
+
+      <AdminModal
+        open={modalOpen}
+        title="写留言"
+        onClose={() => setModalOpen(false)}
+      >
+        <div className="space-y-4">
+          {isAdmin ? (
+            <span className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+              <ShieldCheck className="h-4 w-4 text-accent-pink" />
+              长风
+            </span>
+          ) : (
+            <input
+              type="text"
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+              placeholder="昵称"
+              maxLength={30}
+              className={inputClass}
+            />
+          )}
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder="想说的话..."
+            rows={6}
+            maxLength={1000}
+          />
+          {error ? (
+            <p className="text-sm text-accent-pink">{error}</p>
+          ) : null}
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="rounded-full border border-white/60 bg-white/60 px-5 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={postMessage}
+              disabled={busy}
+              className="pixel-btn rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" />
+              {busy ? "Sending" : "发表"}
+            </button>
+          </div>
+        </div>
+      </AdminModal>
     </section>
   );
 }

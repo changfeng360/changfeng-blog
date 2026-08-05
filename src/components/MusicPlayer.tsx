@@ -16,6 +16,7 @@ export default function MusicPlayer() {
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [rotation, setRotation] = useState(0);
   const rotationRef = useRef(0);
+  const playerRef = useRef<HTMLDivElement | null>(null);
   const {
     playing,
     progress,
@@ -53,13 +54,31 @@ export default function MusicPlayer() {
     return () => window.cancelAnimationFrame(frame);
   }, [playing]);
 
+  useEffect(() => {
+    if (!playlistOpen) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        playerRef.current &&
+        !playerRef.current.contains(event.target as Node)
+      ) {
+        setPlaylistOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [playlistOpen]);
+
   return (
     <div
+      ref={playerRef}
       className="relative h-24 w-16 shrink-0 sm:w-[340px]"
       data-expanded={expanded}
       onMouseLeave={() => {
-        setExpanded(false);
-        setPlaylistOpen(false);
+        if (!playlistOpen) {
+          setExpanded(false);
+        }
       }}
       onClick={() => setExpanded((value) => !value)}
     >

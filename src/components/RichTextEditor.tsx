@@ -57,7 +57,10 @@ export default function RichTextEditor({
   function applyFormat(before: string, after: string) {
     const element = textareaRef.current;
     const selection = getSelection();
-    const selected = value.slice(selection.start, selection.end) || "文字";
+    if (selection.start === selection.end) {
+      return;
+    }
+    const selected = value.slice(selection.start, selection.end);
     const next =
       value.slice(0, selection.start) +
       before +
