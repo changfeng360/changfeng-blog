@@ -8,27 +8,10 @@
   "email": "changfeng360@gmail.com",
   "github": "https://github.com/changfeng360",
   "bilibili": "https://space.bilibili.com/1535776199?spm_id_from=333.1007.0.0",
-  "tags": ["Next.js", "TypeScript", "C++", "Agent", "Motion"],
-  "skills": [
-    {
-      "name": "TypeScript / React",
-      "level": 92
-    },
-    {
-      "name": "C++ / Systems",
-      "level": 78
-    },
-    {
-      "name": "UI / Motion Design",
-      "level": 86
-    },
-    {
-      "name": "Agent / Tooling",
-      "level": 74
-    },
-    {
-      "name": "Pixel Art",
-      "level": 68
-    }
-  ]
+  "tags": [
+    "C/C++",
+    "Agent",
+    "Motion"
+  ],
+  "skills": []
 }
