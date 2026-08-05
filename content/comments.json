@@ -21,6 +21,18 @@
     "likes": 0,
     "likedBy": [],
     "createdAt": "2026-08-05T08:04:05.617Z",
-    "replies": []
+    "replies": [
+      {
+        "id": "5901585a-c325-457b-96a0-f772bf2bf5be",
+        "nickname": "长风",
+        "content": "[i][font=maple][b]ok[/b]😁[/font][/i]",
+        "email": "",
+        "images": [],
+        "isAuthor": true,
+        "likes": 0,
+        "likedBy": [],
+        "createdAt": "2026-08-05T08:12:54.084Z"
+      }
+    ]
   }
 ]
