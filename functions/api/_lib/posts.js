@@ -5,6 +5,8 @@ import {
   writeJson,
 } from "./kv.js";
 
+export { kvAvailable } from "./kv.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
