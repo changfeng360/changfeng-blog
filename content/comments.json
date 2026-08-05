@@ -6,8 +6,10 @@
     "email": "1783713706@qq.com",
     "images": [],
     "isAuthor": false,
-    "likes": 0,
-    "likedBy": [],
+    "likes": 1,
+    "likedBy": [
+      "56a927e9328c0ad8"
+    ],
     "createdAt": "2026-08-05T15:04:11.343Z",
     "replies": []
   }
