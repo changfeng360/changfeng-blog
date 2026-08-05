@@ -21,7 +21,6 @@ type GuestReply = {
   isAuthor: boolean;
   likes: number;
   createdAt: string;
-  canDelete?: boolean;
 };
 
 type GuestMessage = GuestReply & {
@@ -32,7 +31,6 @@ const inputClass =
   "w-full rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm text-ink outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-ink-faint focus:border-accent-blue/60 dark:border-white/10 dark:bg-white/10 dark:text-white";
 
 const LIKE_STORAGE_KEY = "changfeng-guest-liked";
-const DELETE_TOKEN_STORAGE_KEY = "changfeng-guest-delete-tokens";
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -52,22 +50,6 @@ function readLikedIds(): string[] {
   }
 }
 
-function readDeleteTokens(): Record<string, string> {
-  try {
-    const value = window.localStorage.getItem(DELETE_TOKEN_STORAGE_KEY);
-    return value ? (JSON.parse(value) as Record<string, string>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeDeleteTokens(tokens: Record<string, string>) {
-  window.localStorage.setItem(
-    DELETE_TOKEN_STORAGE_KEY,
-    JSON.stringify(tokens),
-  );
-}
-
 export default function Guestbook() {
   const { isAdmin, token } = useAdmin();
   const [messages, setMessages] = useState<GuestMessage[]>([]);
@@ -76,12 +58,13 @@ export default function Guestbook() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [replyNickname, setReplyNickname] = useState("");
+  const [replyEmail, setReplyEmail] = useState("");
   const [replyContent, setReplyContent] = useState("");
   const [likedIds, setLikedIds] = useState<string[]>([]);
-  const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
 
   async function loadMessages() {
     try {
@@ -100,24 +83,8 @@ export default function Guestbook() {
 
   useEffect(() => {
     setLikedIds(readLikedIds());
-    setDeleteTokens(readDeleteTokens());
     loadMessages();
   }, []);
-
-  function rememberCreatedToken(created?: {
-    id: string;
-    deleteToken: string;
-  }) {
-    if (!created || !created.id || !created.deleteToken) {
-      return;
-    }
-    const next = {
-      ...readDeleteTokens(),
-      [created.id]: created.deleteToken,
-    };
-    writeDeleteTokens(next);
-    setDeleteTokens(next);
-  }
 
   async function postMessage() {
     if (busy) {
@@ -125,6 +92,10 @@ export default function Guestbook() {
     }
     if (!isAdmin && !nickname.trim()) {
       setError("请输入昵称");
+      return;
+    }
+    if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("请输入有效的邮箱");
       return;
     }
     if (!content.trim()) {
@@ -143,6 +114,7 @@ export default function Guestbook() {
         body: JSON.stringify({
           action: "add",
           nickname,
+          email,
           content,
         }),
       });
@@ -151,8 +123,8 @@ export default function Guestbook() {
         throw new Error(data.error || "发表失败");
       }
       setMessages(data.messages || []);
-      rememberCreatedToken(data.created);
       setNickname("");
+      setEmail("");
       setContent("");
       setModalOpen(false);
     } catch (err) {
@@ -168,6 +140,10 @@ export default function Guestbook() {
     }
     if (!isAdmin && !replyNickname.trim()) {
       setError("请输入昵称");
+      return;
+    }
+    if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail.trim())) {
+      setError("请输入有效的邮箱");
       return;
     }
     if (!replyContent.trim()) {
@@ -187,6 +163,7 @@ export default function Guestbook() {
           action: "reply",
           parentId,
           nickname: isAdmin ? "长风" : replyNickname,
+          email: replyEmail,
           content: replyContent,
         }),
       });
@@ -195,9 +172,9 @@ export default function Guestbook() {
         throw new Error(data.error || "回复失败");
       }
       setMessages(data.messages || []);
-      rememberCreatedToken(data.created);
       setReplyTarget(null);
       setReplyNickname("");
+      setReplyEmail("");
       setReplyContent("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "回复失败");
@@ -236,18 +213,8 @@ export default function Guestbook() {
     }
   }
 
-  async function deleteEntry(id: string, parentId?: string) {
-    const visitorToken = deleteTokens[id];
-    const target = parentId
-      ? messages
-          .find((message) => message.id === parentId)
-          ?.replies?.find((reply) => reply.id === id)
-      : messages.find((message) => message.id === id);
-    const canDeleteFromServer = Boolean(target?.canDelete);
-    if (
-      (!isAdmin && !visitorToken && !canDeleteFromServer) ||
-      !window.confirm("确定删除这条留言吗？")
-    ) {
+  async function adminDelete(id: string, parentId?: string) {
+    if (!isAdmin || !window.confirm("确定删除这条留言吗？")) {
       return;
     }
     setBusy(true);
@@ -257,10 +224,7 @@ export default function Guestbook() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          ...(isAdmin ? { "x-admin-token": token } : {}),
-          ...(!isAdmin && visitorToken
-            ? { "x-delete-token": visitorToken }
-            : {}),
+          "x-admin-token": token,
         },
         body: JSON.stringify({ id, parentId }),
       });
@@ -269,12 +233,6 @@ export default function Guestbook() {
         throw new Error(data.error || "删除失败");
       }
       setMessages(data.messages || []);
-      if (!isAdmin) {
-        const next = { ...deleteTokens };
-        delete next[id];
-        writeDeleteTokens(next);
-        setDeleteTokens(next);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -290,6 +248,7 @@ export default function Guestbook() {
   function closeReply() {
     setReplyTarget(null);
     setReplyNickname("");
+    setReplyEmail("");
     setReplyContent("");
     setError("");
   }
@@ -343,10 +302,9 @@ export default function Guestbook() {
               message={message}
               isAdmin={isAdmin}
               likedIds={likedIds}
-              deleteTokens={deleteTokens}
               onOpenReply={() => openReply(message.id)}
               onLike={(id, parentId) => like(id, parentId)}
-              onDelete={(id, parentId) => deleteEntry(id, parentId)}
+              onDelete={(id, parentId) => adminDelete(id, parentId)}
             />
           ))}
         </div>
@@ -364,14 +322,24 @@ export default function Guestbook() {
               长风
             </span>
           ) : (
-            <input
-              type="text"
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              placeholder="昵称"
-              maxLength={30}
-              className={inputClass}
-            />
+            <>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                placeholder="昵称"
+                maxLength={30}
+                className={inputClass}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="邮箱（用于接收博主回复）"
+                maxLength={120}
+                className={inputClass}
+              />
+            </>
           )}
           <RichTextEditor
             value={content}
@@ -416,14 +384,24 @@ export default function Guestbook() {
               长风
             </span>
           ) : (
-            <input
-              type="text"
-              value={replyNickname}
-              onChange={(event) => setReplyNickname(event.target.value)}
-              placeholder="昵称"
-              maxLength={30}
-              className={inputClass}
-            />
+            <>
+              <input
+                type="text"
+                value={replyNickname}
+                onChange={(event) => setReplyNickname(event.target.value)}
+                placeholder="昵称"
+                maxLength={30}
+                className={inputClass}
+              />
+              <input
+                type="email"
+                value={replyEmail}
+                onChange={(event) => setReplyEmail(event.target.value)}
+                placeholder="邮箱（用于接收博主回复）"
+                maxLength={120}
+                className={inputClass}
+              />
+            </>
           )}
           <RichTextEditor
             value={replyContent}
@@ -467,7 +445,6 @@ function GuestMessageCard({
   message,
   isAdmin,
   likedIds,
-  deleteTokens,
   onOpenReply,
   onLike,
   onDelete,
@@ -475,14 +452,11 @@ function GuestMessageCard({
   message: GuestMessage;
   isAdmin: boolean;
   likedIds: string[];
-  deleteTokens: Record<string, string>;
   onOpenReply: () => void;
   onLike: (id: string, parentId?: string) => void;
   onDelete: (id: string, parentId?: string) => void;
 }) {
   const messageLiked = likedIds.includes(message.id);
-  const canDeleteMessage =
-    isAdmin || Boolean(deleteTokens[message.id]) || Boolean(message.canDelete);
 
   return (
     <article className="rounded-4xl border border-white/60 bg-white/45 p-5 shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 sm:p-6">
@@ -507,7 +481,7 @@ function GuestMessageCard({
             </p>
           </div>
         </div>
-        {canDeleteMessage ? (
+        {isAdmin ? (
           <button
             type="button"
             onClick={() => onDelete(message.id)}
@@ -573,9 +547,7 @@ function GuestMessageCard({
                     {formatTime(reply.createdAt)}
                   </span>
                 </div>
-                {isAdmin ||
-                deleteTokens[reply.id] ||
-                Boolean(reply.canDelete) ? (
+                {isAdmin ? (
                   <button
                     type="button"
                     onClick={() => onDelete(reply.id, message.id)}

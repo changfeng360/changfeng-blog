@@ -10,7 +10,7 @@ function json(data, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-admin-token, x-delete-token",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-token",
     },
   });
 }
@@ -21,7 +21,7 @@ export function onRequestOptions() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-admin-token, x-delete-token",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-token",
     },
   });
 }
@@ -133,28 +133,22 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function createDeleteToken() {
-  if (crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 14)}`;
-}
-
 function withoutPrivateFields(item) {
   if (!item) {
     return item;
   }
-  const { deleteToken, visitorKey, ...rest } = item;
-  return rest;
+  const { deleteToken, visitorKey, email, ...rest } = item;
+  return email ? { ...rest, email } : rest;
 }
 
-function sanitizeMessages(messages, visitorKey, isAdmin) {
-  const decorate = (item) => ({
-    ...withoutPrivateFields(item),
-    canDelete:
-      isAdmin ||
-      Boolean(item.visitorKey && item.visitorKey === visitorKey),
-  });
+function sanitizeMessages(messages, includeEmail = false) {
+  const decorate = (item) => {
+    const cleaned = withoutPrivateFields(item);
+    if (!includeEmail && cleaned.email) {
+      delete cleaned.email;
+    }
+    return cleaned;
+  };
   return (messages || []).map((message) => ({
     ...decorate(message),
     replies: (message.replies || []).map(decorate),
@@ -196,15 +190,51 @@ function validateContent(value) {
   return content;
 }
 
+function validateEmail(value) {
+  const email = String(value ?? "").trim();
+  if (
+    !email ||
+    email.length > 120 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    throw new Error("请填写有效的邮箱");
+  }
+  return email;
+}
+
+async function sendEmail(env, to, subject, text) {
+  const apiKey = env.RESEND_API_KEY;
+  const from = env.RESEND_FROM_EMAIL;
+  const recipient = to || env.RESEND_TO_EMAIL || env.OWNER_EMAIL;
+  if (!apiKey || !from || !recipient) {
+    return { skipped: true };
+  }
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [recipient],
+      subject,
+      text,
+    }),
+  });
+  if (!response.ok) {
+    return { skipped: true, error: `Email API ${response.status}` };
+  }
+  return { skipped: false };
+}
+
 export async function onRequestGet(context) {
   const { request, env } = context;
   try {
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
-    const visitor = await visitorKey(request);
-    const isAdmin = authorizeAdmin(request, env);
     return json({
-      messages: sanitizeMessages(messages, visitor, isAdmin),
+      messages: sanitizeMessages(messages, authorizeAdmin(request, env)),
     });
   } catch (error) {
     return json({ error: error.message }, 500);
@@ -218,25 +248,22 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
-    const visitor = await visitorKey(request);
 
     if (body.action === "add") {
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
       const content = validateContent(body.content);
+      const email = isAdmin ? "" : validateEmail(body.email);
       const id = createId();
-      const deleteToken = createDeleteToken();
-      const visitor = await visitorKey(request);
       messages.unshift({
         id,
         nickname,
         content,
+        email,
         isAuthor: isAdmin,
         likes: 0,
         likedBy: [],
         createdAt: new Date().toISOString(),
         replies: [],
-        deleteToken,
-        visitorKey: visitor,
       });
       await writeFile(
         JSON.stringify(messages, null, 2),
@@ -244,10 +271,23 @@ export async function onRequestPost(context) {
         env,
         file.sha,
       );
+      let emailResult = { skipped: true };
+      if (!isAdmin) {
+        try {
+          emailResult = await sendEmail(
+            env,
+            env.RESEND_TO_EMAIL || env.OWNER_EMAIL,
+            `【长风的博客】新留言：${nickname}`,
+            `昵称：${nickname}\n邮箱：${email}\n内容：\n${content}`,
+          );
+        } catch {
+          emailResult = { skipped: true, error: "email_failed" };
+        }
+      }
       return json({
         ok: true,
-        messages: sanitizeMessages(messages, visitor, isAdmin),
-        created: { id, deleteToken },
+        messages: sanitizeMessages(messages, isAdmin),
+        email: emailResult,
       });
     }
 
@@ -258,20 +298,18 @@ export async function onRequestPost(context) {
       }
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
       const content = validateContent(body.content);
+      const email = isAdmin ? "" : validateEmail(body.email);
       parent.replies = parent.replies || [];
       const id = createId();
-      const deleteToken = createDeleteToken();
-      const visitor = await visitorKey(request);
       const reply = {
         id,
         nickname,
         content,
+        email,
         isAuthor: isAdmin,
         likes: 0,
         likedBy: [],
         createdAt: new Date().toISOString(),
-        deleteToken,
-        visitorKey: visitor,
       };
       parent.replies.push(reply);
       await writeFile(
@@ -280,10 +318,38 @@ export async function onRequestPost(context) {
         env,
         file.sha,
       );
+      let emailResult = { skipped: true };
+      if (isAdmin) {
+        if (parent.email) {
+          try {
+            emailResult = await sendEmail(
+              env,
+              parent.email,
+              "【长风的博客】你的留言收到回复",
+              `你好 ${parent.nickname}：\n\n你的留言：\n${parent.content}\n\n博主回复：\n${content}`,
+            );
+          } catch {
+            emailResult = { skipped: true, error: "email_failed" };
+          }
+        } else {
+          emailResult = { skipped: true, reason: "no_email" };
+        }
+      } else {
+        try {
+          emailResult = await sendEmail(
+            env,
+            env.RESEND_TO_EMAIL || env.OWNER_EMAIL,
+            `【长风的博客】新回复：${nickname}`,
+            `昵称：${nickname}\n邮箱：${email}\n回复内容：\n${content}`,
+          );
+        } catch {
+          emailResult = { skipped: true, error: "email_failed" };
+        }
+      }
       return json({
         ok: true,
-        messages: sanitizeMessages(messages, visitor, isAdmin),
-        created: { id, deleteToken },
+        messages: sanitizeMessages(messages, isAdmin),
+        email: emailResult,
       });
     }
 
@@ -311,7 +377,7 @@ export async function onRequestPost(context) {
       );
       return json({
         ok: true,
-        messages: sanitizeMessages(messages, visitor, isAdmin),
+        messages: sanitizeMessages(messages, isAdmin),
       });
     }
 
@@ -323,34 +389,19 @@ export async function onRequestPost(context) {
 
 export async function onRequestDelete(context) {
   const { request, env } = context;
-  const isAdmin = authorizeAdmin(request, env);
-  const deleteToken = request.headers.get("x-delete-token") || "";
-  const currentVisitorKey = await visitorKey(request);
+  if (!authorizeAdmin(request, env)) {
+    return json({ error: "未授权" }, 401);
+  }
   try {
     const body = await request.json();
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
     let next = messages;
-    let removed = false;
     if (body.parentId) {
       next = messages.map((message) => {
         if (message.id !== body.parentId) {
           return message;
         }
-        const reply = (message.replies || []).find(
-          (item) => item.id === body.id,
-        );
-        if (!reply) {
-          return message;
-        }
-        const allowed =
-          isAdmin ||
-          (reply.deleteToken && reply.deleteToken === deleteToken) ||
-          (reply.visitorKey && reply.visitorKey === currentVisitorKey);
-        if (!allowed) {
-          return message;
-        }
-        removed = true;
         return {
           ...message,
           replies: (message.replies || []).filter(
@@ -359,25 +410,7 @@ export async function onRequestDelete(context) {
         };
       });
     } else {
-      const message = messages.find((item) => item.id === body.id);
-      if (message) {
-        const allowed =
-          isAdmin ||
-          (message.deleteToken && message.deleteToken === deleteToken) ||
-          (message.visitorKey && message.visitorKey === currentVisitorKey);
-        if (allowed) {
-          next = messages.filter((item) => item.id !== body.id);
-          removed = true;
-        }
-      }
-    }
-    if (!removed) {
-      return json(
-        {
-          error: isAdmin || deleteToken ? "留言不存在" : "未授权",
-        },
-        isAdmin || deleteToken ? 404 : 401,
-      );
+      next = messages.filter((message) => message.id !== body.id);
     }
     await writeFile(
       JSON.stringify(next, null, 2),
@@ -387,7 +420,7 @@ export async function onRequestDelete(context) {
     );
     return json({
       ok: true,
-      messages: sanitizeMessages(next, currentVisitorKey, isAdmin),
+      messages: sanitizeMessages(next, true),
     });
   } catch (error) {
     return json({ error: error.message }, 400);

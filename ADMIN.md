@@ -22,6 +22,12 @@
 | `GITHUB_TOKEN` | 是 | GitHub Personal Access Token，需要 `repo` 权限 |
 | `GITHUB_REPO` | 否 | 默认 `changfeng360/changfeng-blog` |
 | `GITHUB_BRANCH` | 否 | 默认 `main` |
+| `RESEND_API_KEY` | 否 | Resend API Key，用于发送留言通知和博主回复邮件 |
+| `RESEND_FROM_EMAIL` | 否 | 发件邮箱，需要先在 Resend 验证域名 |
+| `RESEND_TO_EMAIL` | 否 | 接收留言通知的邮箱，默认使用发件邮箱 |
+| `OWNER_EMAIL` | 否 | 接收留言通知的备用邮箱 |
+
+未配置邮件变量时，留言和回复仍会正常显示在网页上，只是不会发送邮件。
 
 ## 使用
 
