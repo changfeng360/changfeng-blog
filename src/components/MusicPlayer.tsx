@@ -1,9 +1,12 @@
 "use client";
 
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useRef, useState } from "react";
 import { ListMusic, Pause, Play, Volume2 } from "lucide-react";
 import { PLAYLIST, usePlayer } from "./PlayerProvider";
+
+const FALLBACK_COVER = "/pixels/luv-sic-album.jpg";
 
 function formatTime(percent: number, totalSeconds: number) {
   const seconds = Math.floor((percent / 100) * totalSeconds);
@@ -94,17 +97,23 @@ export default function MusicPlayer() {
           event.stopPropagation();
           togglePlayback();
         }}
-        className="absolute left-0 top-1/2 z-10 h-14 w-14 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/70 shadow-apple-sm dark:border-white/15"
+        className="absolute left-0 top-1/2 z-10 h-14 w-14 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/70 bg-pixel-slate shadow-apple-sm dark:border-white/15"
         aria-label={playing ? "暂停" : "播放"}
       >
-        <Image
+        <img
           src={currentTrack.cover}
           alt={`${currentTrack.title} 专辑封面`}
-          width={300}
-          height={263}
+          draggable={false}
           className="h-full w-full object-cover"
           style={{ transform: `rotate(${rotation}deg)` }}
           data-rotation={Math.round(rotation)}
+          onError={(event) => {
+            const image = event.currentTarget;
+            if (!image.dataset.fallbackUsed) {
+              image.dataset.fallbackUsed = "1";
+              image.src = FALLBACK_COVER;
+            }
+          }}
         />
         <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white opacity-0 transition-opacity duration-200 hover:opacity-100">
           {playing ? (
@@ -207,6 +216,19 @@ export default function MusicPlayer() {
                       : "border border-transparent hover:bg-white/80 dark:hover:bg-white/10"
                   }`}
                 >
+                  <img
+                    src={track.cover}
+                    alt=""
+                    draggable={false}
+                    className="h-9 w-9 shrink-0 rounded-lg border border-white/40 object-cover dark:border-white/10"
+                    onError={(event) => {
+                      const image = event.currentTarget;
+                      if (!image.dataset.fallbackUsed) {
+                        image.dataset.fallbackUsed = "1";
+                        image.src = FALLBACK_COVER;
+                      }
+                    }}
+                  />
                   <span className="pixel-font shrink-0 text-[11px] text-ink-soft">
                     {String(index + 1).padStart(2, "0")}
                   </span>

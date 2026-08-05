@@ -32,7 +32,7 @@ export const PLAYLIST: PlayerTrack[] = [
     artist: "Matryoshka",
     src: "/music/sacred-play-secret-place.mp3",
     cover: "/pixels/luv-sic-album.jpg",
-    duration: 0,
+    duration: 317.55,
   },
   {
     id: "unnamed-summer",
@@ -40,7 +40,7 @@ export const PLAYLIST: PlayerTrack[] = [
     artist: "木宇ning",
     src: "/music/unnamed-summer-2022.mp3",
     cover: "/pixels/cover-summer.jpg",
-    duration: 0,
+    duration: 246.19,
   },
   {
     id: "blue-dragon",
@@ -48,7 +48,7 @@ export const PLAYLIST: PlayerTrack[] = [
     artist: "澤野弘之",
     src: "/music/blue-dragon-piano-guitar.mp3",
     cover: "/pixels/cover-blue-dragon.jpg",
-    duration: 0,
+    duration: 213.36,
   },
 ];
 
@@ -85,8 +85,10 @@ export function PlayerProvider({
   const currentTrack = PLAYLIST[trackIndex];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
+  const playRequestedRef = useRef(false);
 
   const stopPlayback = () => {
+    playRequestedRef.current = false;
     if (timerRef.current !== null) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
@@ -104,7 +106,13 @@ export function PlayerProvider({
     if (audio.duration > 0) {
       audio.currentTime = (startAt / 100) * audio.duration;
     }
-    void audio.play().catch(() => setPlaying(false));
+    playRequestedRef.current = true;
+    void audio.play().catch((error) => {
+      if (error?.name !== "AbortError") {
+        playRequestedRef.current = false;
+        setPlaying(false);
+      }
+    });
     setPlaying(true);
 
     if (timerRef.current !== null) {
@@ -126,6 +134,7 @@ export function PlayerProvider({
 
     if (audio) {
       audio.src = PLAYLIST[nextIndex].src;
+      audio.load();
       audio.currentTime = 0;
       audio.volume = volume / 100;
     }
@@ -197,10 +206,15 @@ export function PlayerProvider({
       <audio
         ref={audioRef}
         src={currentTrack.src}
-        loop
         preload="metadata"
         onLoadedMetadata={(event) => {
           setDuration(event.currentTarget.duration);
+          if (playRequestedRef.current) {
+            void event.currentTarget.play().catch(() => {
+              playRequestedRef.current = false;
+              setPlaying(false);
+            });
+          }
         }}
         onEnded={nextTrack}
       />
