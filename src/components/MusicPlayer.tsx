@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ListMusic,
+  Music,
   Pause,
   Play,
   Repeat,
@@ -52,13 +53,16 @@ export default function MusicPlayer() {
     previousTrack,
   } = usePlayer();
 
-  const totalSeconds = duration || currentTrack.duration || 0;
+  const hasTrack = currentTrack !== null;
+  const totalSeconds = duration || currentTrack?.duration || 0;
   const canPrevious =
-    playbackMode === "shuffle" ? true : trackIndex > 0;
+    hasTrack &&
+    (playbackMode === "shuffle" ? true : (trackIndex ?? 0) > 0);
   const canNext =
-    playbackMode === "shuffle"
+    hasTrack &&
+    (playbackMode === "shuffle"
       ? true
-      : trackIndex < PLAYLIST.length - 1;
+      : (trackIndex ?? 0) < PLAYLIST.length - 1);
 
   useEffect(() => {
     if (!playing) {
@@ -85,7 +89,7 @@ export default function MusicPlayer() {
   useEffect(() => {
     rotationRef.current = 0;
     setRotation(0);
-  }, [currentTrack.id]);
+  }, [currentTrack?.id]);
 
   useEffect(() => {
     if (!playlistOpen) {
@@ -103,15 +107,36 @@ export default function MusicPlayer() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [playlistOpen]);
 
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        playerRef.current &&
+        !playerRef.current.contains(event.target as Node)
+      ) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [expanded]);
+
   return (
     <div
       ref={playerRef}
       className="relative h-24 w-16 shrink-0 sm:w-[340px]"
       data-expanded={expanded}
-      onMouseLeave={() => {
-        if (!playlistOpen) {
-          setExpanded(false);
+      onMouseLeave={(event) => {
+        const related = event.relatedTarget as Node | null;
+        if (
+          playlistOpen ||
+          (related && playerRef.current?.contains(related))
+        ) {
+          return;
         }
+        setExpanded(false);
       }}
       onClick={() => setExpanded((value) => !value)}
     >
@@ -120,26 +145,41 @@ export default function MusicPlayer() {
         onMouseEnter={() => setExpanded(true)}
         onClick={(event) => {
           event.stopPropagation();
-          togglePlayback();
+          if (!currentTrack) {
+            setExpanded(true);
+            setPlaylistOpen(true);
+          } else {
+            togglePlayback();
+          }
         }}
-        className="absolute left-0 top-1/2 z-10 h-14 w-14 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/70 bg-pixel-slate shadow-apple-sm dark:border-white/15"
-        aria-label={playing ? "暂停" : "播放"}
+        className={`absolute left-0 top-1/2 z-10 h-14 w-14 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/70 shadow-apple-sm dark:border-white/15 ${
+          currentTrack ? "bg-pixel-slate" : "bg-black"
+        }`}
+        aria-label={
+          currentTrack ? (playing ? "暂停" : "播放") : "选择音乐"
+        }
       >
-        <img
-          src={currentTrack.cover}
-          alt={`${currentTrack.title} 专辑封面`}
-          draggable={false}
-          className="h-full w-full object-cover"
-          style={{ transform: `rotate(${rotation}deg)` }}
-          data-rotation={Math.round(rotation)}
-          onError={(event) => {
-            const image = event.currentTarget;
-            if (!image.dataset.fallbackUsed) {
-              image.dataset.fallbackUsed = "1";
-              image.src = FALLBACK_COVER;
-            }
-          }}
-        />
+        {currentTrack ? (
+          <img
+            src={currentTrack.cover}
+            alt={`${currentTrack.title} 专辑封面`}
+            draggable={false}
+            className="h-full w-full object-cover"
+            style={{ transform: `rotate(${rotation}deg)` }}
+            data-rotation={Math.round(rotation)}
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (!image.dataset.fallbackUsed) {
+                image.dataset.fallbackUsed = "1";
+                image.src = FALLBACK_COVER;
+              }
+            }}
+          />
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center text-white">
+            <Music className="h-6 w-6" />
+          </span>
+        )}
         <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white opacity-0 transition-opacity duration-200 hover:opacity-100">
           {playing ? (
             <Pause className="h-5 w-5" />
@@ -156,15 +196,16 @@ export default function MusicPlayer() {
             : "pointer-events-none w-0 opacity-0 sm:w-0"
         }`}
         data-player-strip={expanded ? "expanded" : "collapsed"}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="w-full shrink-0 space-y-2 px-4">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate text-[11px] font-semibold text-ink">
-                {currentTrack.title}
+                {currentTrack?.title ?? "选择音乐"}
               </p>
               <p className="truncate text-[10px] text-ink-soft">
-                {currentTrack.artist}
+                {currentTrack?.artist ?? "从播放列表选择"}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -240,6 +281,7 @@ export default function MusicPlayer() {
               max="100"
               value={progress}
               onChange={(event) => seek(Number(event.target.value))}
+              disabled={!hasTrack}
               className="pixel-range h-2"
               aria-label="播放进度"
             />

@@ -61,8 +61,8 @@ type PlayerContextValue = {
   progress: number;
   volume: number;
   duration: number;
-  currentTrack: PlayerTrack;
-  trackIndex: number;
+  currentTrack: PlayerTrack | null;
+  trackIndex: number | null;
   playbackMode: PlaybackMode;
   togglePlayback: () => void;
   seek: (value: number) => void;
@@ -84,10 +84,10 @@ export function PlayerProvider({
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(62);
   const [duration, setDuration] = useState(0);
-  const [trackIndex, setTrackIndex] = useState(0);
+  const [trackIndex, setTrackIndex] = useState<number | null>(null);
   const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("sequential");
 
-  const currentTrack = PLAYLIST[trackIndex];
+  const currentTrack = trackIndex === null ? null : PLAYLIST[trackIndex];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
   const playRequestedRef = useRef(false);
@@ -148,7 +148,7 @@ export function PlayerProvider({
     const nextIndex = Math.max(0, Math.min(count - 1, index));
     const audio = audioRef.current;
 
-    if (recordHistory && nextIndex !== trackIndex) {
+    if (recordHistory && trackIndex !== null && nextIndex !== trackIndex) {
       historyRef.current.push(trackIndex);
       if (historyRef.current.length > 30) {
         historyRef.current.shift();
@@ -173,6 +173,9 @@ export function PlayerProvider({
   };
 
   const nextTrack = () => {
+    if (trackIndex === null) {
+      return;
+    }
     if (playbackMode === "shuffle") {
       const nextIndex = pickRandomIndex(trackIndex);
       if (nextIndex !== null) {
@@ -187,6 +190,9 @@ export function PlayerProvider({
   };
 
   const previousTrack = () => {
+    if (trackIndex === null) {
+      return;
+    }
     if (playbackMode === "shuffle") {
       const previous = historyRef.current.pop();
       if (
@@ -206,6 +212,9 @@ export function PlayerProvider({
   };
 
   const handleEnded = () => {
+    if (trackIndex === null) {
+      return;
+    }
     if (playbackMode === "single") {
       startPlayback(0);
       return;
@@ -244,6 +253,9 @@ export function PlayerProvider({
   }, []);
 
   const togglePlayback = () => {
+    if (trackIndex === null) {
+      return;
+    }
     if (playing) {
       stopPlayback();
     } else {
@@ -288,7 +300,7 @@ export function PlayerProvider({
       {children}
       <audio
         ref={audioRef}
-        src={currentTrack.src}
+        src={currentTrack?.src ?? ""}
         preload="metadata"
         onLoadedMetadata={(event) => {
           setDuration(event.currentTarget.duration);
