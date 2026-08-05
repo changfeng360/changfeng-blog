@@ -13,5 +13,14 @@
     "Agent",
     "Motion"
   ],
-  "skills": []
+  "skills": [
+    {
+      "name": "C/C++",
+      "level": 80
+    },
+    {
+      "name": "Python",
+      "level": 20
+    }
+  ]
 }
