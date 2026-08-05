@@ -31,7 +31,7 @@ export const PLAYLIST: PlayerTrack[] = [
     title: "Sacred Play Secret Place",
     artist: "Matryoshka",
     src: "/music/sacred-play-secret-place.mp3",
-    cover: "/pixels/luv-sic-album.jpg",
+    cover: "/pixels/cover-sacred-play.jpg",
     duration: 317.55,
   },
   {
