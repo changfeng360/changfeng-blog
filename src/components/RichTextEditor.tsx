@@ -28,13 +28,152 @@ const COLOR_SWATCHES = [
   "#1d1d1f",
 ];
 
-type FormatKind = "bold" | "italic" | "underline";
-
-const FORMAT_TAGS: Record<FormatKind, [string, string]> = {
-  bold: ["[b]", "[/b]"],
-  italic: ["[i]", "[/i]"],
-  underline: ["[u]", "[/u]"],
+const FONT_MAP: Record<string, string> = {
+  system:
+    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif',
+  misans:
+    '"MiSans", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
+  wenkai: '"LXGW WenKai", "Kaiti SC", "STKaiti", serif',
+  smiley:
+    '"Smiley Sans Oblique", "Smiley Sans", "PingFang SC", "Microsoft YaHei", sans-serif',
+  serif: 'Georgia, "Times New Roman", "Songti SC", serif',
+  mono: '"SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace',
+  pixel:
+    '"Fusion Pixel 12px Monospaced SC", "Zpix", "Press Start 2P", "SF Mono", monospace',
+  maple:
+    '"Maple Mono", "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace',
+  rounded:
+    '"Arial Rounded MT Bold", "PingFang SC", "Microsoft YaHei", sans-serif',
 };
+
+const FONT_KEY_BY_FAMILY = Object.fromEntries(
+  Object.entries(FONT_MAP).map(([key, value]) => [
+    value.split(",")[0].trim().replace(/^"|"$/g, "").toLowerCase(),
+    key,
+  ]),
+);
+
+type FormatKind = "bold" | "italic" | "underline";
+type FormatState = Record<FormatKind, boolean>;
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function normalizeHex(value: string) {
+  const trimmed = value.trim();
+  if (/^#[0-9a-f]{3,8}$/i.test(trimmed)) {
+    if (trimmed.length === 4) {
+      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`;
+    }
+    return trimmed.toLowerCase();
+  }
+  const rgb = trimmed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgb) {
+    return `#${rgb
+      .slice(1, 4)
+      .map((part) => Number(part).toString(16).padStart(2, "0"))
+      .join("")}`;
+  }
+  return trimmed.toLowerCase();
+}
+
+function fontKeyFromFamily(fontFamily: string) {
+  const first = fontFamily
+    .split(",")[0]
+    .trim()
+    .replace(/^"|"$/g, "")
+    .toLowerCase();
+  return FONT_KEY_BY_FAMILY[first] || null;
+}
+
+function richTextToHtml(value: string) {
+  return escapeHtml(String(value))
+    .replace(
+      /^### (.*)$/gm,
+      (_, text: string) => `<h3 class="rt-editor-heading">${text}</h3>`,
+    )
+    .replace(
+      /^## (.*)$/gm,
+      (_, text: string) => `<h2 class="rt-editor-heading">${text}</h2>`,
+    )
+    .replace(
+      /^# (.*)$/gm,
+      (_, text: string) => `<h2 class="rt-editor-heading">${text}</h2>`,
+    )
+    .replace(/\[b\]([\s\S]*?)\[\/b\]/gi, "<strong>$1</strong>")
+    .replace(/\[i\]([\s\S]*?)\[\/i\]/gi, "<em>$1</em>")
+    .replace(/\[u\]([\s\S]*?)\[\/u\]/gi, "<u>$1</u>")
+    .replace(
+      /\[font=([a-z0-9_-]+)\]([\s\S]*?)\[\/font\]/gi,
+      (_, key: string, inner: string) =>
+        `<span data-font-key="${key}" style="font-family:${FONT_MAP[key] || "inherit"}">${inner}</span>`,
+    )
+    .replace(
+      /\[color=([#a-zA-Z0-9]{3,20})\]([\s\S]*?)\[\/color\]/gi,
+      (_, color: string, inner: string) =>
+        `<span style="color:${color}">${inner}</span>`,
+    )
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+    .replace(/__([^_]+)__/g, "<u>$1</u>");
+}
+
+function serializeNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent ?? "";
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return "";
+  }
+  const element = node as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  let inner = "";
+  for (const child of Array.from(element.childNodes)) {
+    inner += serializeNode(child);
+  }
+  if (tag === "br") {
+    return "\n";
+  }
+  if (tag === "div" || tag === "p") {
+    return `${inner}\n`;
+  }
+  if (tag === "strong" || tag === "b") {
+    return `[b]${inner}[/b]`;
+  }
+  if (tag === "em" || tag === "i") {
+    return `[i]${inner}[/i]`;
+  }
+  if (tag === "u") {
+    return `[u]${inner}[/u]`;
+  }
+  const color =
+    element.style.color || (tag === "font" ? element.getAttribute("color") : null);
+  if (color) {
+    return `[color=${normalizeHex(color)}]${inner}[/color]`;
+  }
+  const fontKey =
+    element.dataset.fontKey ||
+    (tag === "font"
+      ? fontKeyFromFamily(element.getAttribute("face") || "")
+      : fontKeyFromFamily(element.style.fontFamily || ""));
+  if (fontKey) {
+    return `[font=${fontKey}]${inner}[/font]`;
+  }
+  return inner;
+}
+
+function serializeEditor(root: HTMLElement) {
+  let result = "";
+  for (const child of Array.from(root.childNodes)) {
+    result += serializeNode(child);
+  }
+  return result.replace(/\n{3,}/g, "\n\n");
+}
 
 export default function RichTextEditor({
   value,
@@ -51,190 +190,144 @@ export default function RichTextEditor({
   className?: string;
   maxLength?: number;
 }) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const selectionRef = useRef({ start: 0, end: 0 });
-  const [font, setFont] = useState("");
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const selectionRef = useRef<Range | null>(null);
+  const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
-  const [activeFormats, setActiveFormats] = useState<Record<FormatKind, boolean>>({
+  const [activeFormats, setActiveFormats] = useState<FormatState>({
     bold: false,
     italic: false,
     underline: false,
   });
-  const prevValueRef = useRef(value);
+  const [activeColor, setActiveColor] = useState("");
+  const [activeFont, setActiveFont] = useState("");
+  const [placeholderVisible, setPlaceholderVisible] = useState(!value.trim());
 
-  function syncSelection() {
-    const element = textareaRef.current;
-    if (!element) {
+  function syncEditorHtml(raw: string) {
+    const editor = editorRef.current;
+    if (!editor) {
       return;
     }
-    selectionRef.current = {
-      start: element.selectionStart,
-      end: element.selectionEnd,
-    };
+    editor.innerHTML = raw.trim() ? richTextToHtml(raw) : "";
+    setPlaceholderVisible(!raw.trim());
   }
 
-  function getSelection() {
-    const element = textareaRef.current;
-    if (element && document.activeElement === element) {
-      return {
-        start: element.selectionStart,
-        end: element.selectionEnd,
-      };
+  function saveSelection() {
+    const selection = window.getSelection();
+    if (
+      selection &&
+      selection.rangeCount > 0 &&
+      editorRef.current?.contains(selection.anchorNode)
+    ) {
+      selectionRef.current = selection.getRangeAt(0).cloneRange();
     }
-    return selectionRef.current;
   }
 
-  function commit(nextValue: string) {
-    setDraft(nextValue);
-    prevValueRef.current = nextValue;
-    onChange(nextValue);
+  function restoreSelection() {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    editor.focus();
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+    if (selectionRef.current) {
+      selection.removeAllRanges();
+      selection.addRange(selectionRef.current);
+    } else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+
+  function updateToolbarState() {
+    if (!editorRef.current || document.activeElement !== editorRef.current) {
+      return;
+    }
+    try {
+      setActiveFormats({
+        bold: document.queryCommandState("bold"),
+        italic: document.queryCommandState("italic"),
+        underline: document.queryCommandState("underline"),
+      });
+      const color = document.queryCommandValue("foreColor");
+      setActiveColor(normalizeHex(color || ""));
+      const fontName = document.queryCommandValue("fontName");
+      setActiveFont(fontKeyFromFamily(fontName || "") || "");
+    } catch {
+      // queryCommand APIs are not available in every browser.
+    }
+  }
+
+  function commitFromEditor() {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    const raw = serializeEditor(editor);
+    if (maxLength && raw.length > maxLength) {
+      syncEditorHtml(lastEmittedRef.current);
+      return;
+    }
+    lastEmittedRef.current = raw;
+    setDraft(raw);
+    setPlaceholderVisible(!raw.trim());
+    onChange(raw);
+    updateToolbarState();
+  }
+
+  function execCommand(command: string, commandValue?: string) {
+    restoreSelection();
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    if (command === "foreColor") {
+      document.execCommand("styleWithCSS", false, "true");
+    }
+    document.execCommand(command, false, commandValue);
+    saveSelection();
+    commitFromEditor();
   }
 
   function applyFormat(kind: FormatKind) {
-    const element = textareaRef.current;
-    const selection = getSelection();
-    const [before, after] = FORMAT_TAGS[kind];
-    if (selection.start === selection.end) {
-      setActiveFormats((current) => ({
-        ...current,
-        [kind]: !current[kind],
-      }));
-      return;
-    }
-    const selected = draft.slice(selection.start, selection.end);
-    const hasTag =
-      draft.slice(selection.start - before.length, selection.start) ===
-        before &&
-      draft.slice(selection.end, selection.end + after.length) === after;
-    const next = hasTag
-      ? draft.slice(0, selection.start - before.length) +
-        selected +
-        draft.slice(selection.end + after.length)
-      : draft.slice(0, selection.start) +
-        before +
-        selected +
-        after +
-        draft.slice(selection.end);
-    commit(next);
-    setActiveFormats((current) => ({
-      ...current,
-      [kind]: !hasTag,
-    }));
-    window.requestAnimationFrame(() => {
-      if (!element) {
-        return;
-      }
-      element.focus();
-      const caret = hasTag
-        ? selection.start - before.length + selected.length
-        : selection.start + before.length + selected.length;
-      element.setSelectionRange(caret, caret);
-      selectionRef.current = { start: caret, end: caret };
-    });
+    execCommand(kind);
+    requestAnimationFrame(() => updateToolbarState());
   }
 
-  function applyMarkup(before: string, after: string) {
-    const element = textareaRef.current;
-    const selection = getSelection();
-    if (selection.start === selection.end) {
-      return;
-    }
-    const selected = draft.slice(selection.start, selection.end);
-    const next =
-      draft.slice(0, selection.start) +
-      before +
-      selected +
-      after +
-      draft.slice(selection.end);
-    commit(next);
-    window.requestAnimationFrame(() => {
-      if (!element) {
-        return;
-      }
-      element.focus();
-      const caret = selection.start + before.length + selected.length;
-      element.setSelectionRange(caret, caret);
-      selectionRef.current = { start: caret, end: caret };
-    });
+  function applyColor(swatch: string) {
+    execCommand("foreColor", swatch);
+    setActiveColor(swatch);
   }
 
-  function findInsertion(previous: string, next: string) {
-    let start = 0;
-    const minLength = Math.min(previous.length, next.length);
-    while (start < minLength && previous[start] === next[start]) {
-      start += 1;
-    }
-    let previousEnd = previous.length;
-    let nextEnd = next.length;
-    while (
-      previousEnd > start &&
-      nextEnd > start &&
-      previous[previousEnd - 1] === next[nextEnd - 1]
-    ) {
-      previousEnd -= 1;
-      nextEnd -= 1;
-    }
-    const inserted = next.slice(start, nextEnd);
-    if (!inserted) {
-      return null;
-    }
-    return { start, inserted };
-  }
-
-  function handleTextChange(nextValue: string) {
-    const previous = prevValueRef.current;
-    const insertion = findInsertion(previous, nextValue);
-    const active = (Object.keys(activeFormats) as FormatKind[]).filter(
-      (kind) => activeFormats[kind],
-    );
-
-    if (
-      insertion &&
-      !insertion.inserted.includes("\n") &&
-      active.length > 0
-    ) {
-      let wrapped = insertion.inserted;
-      if (active.includes("bold")) {
-        wrapped = `[b]${wrapped}[/b]`;
-      }
-      if (active.includes("italic")) {
-        wrapped = `[i]${wrapped}[/i]`;
-      }
-      if (active.includes("underline")) {
-        wrapped = `[u]${wrapped}[/u]`;
-      }
-      const formatted =
-        nextValue.slice(0, insertion.start) +
-        wrapped +
-        nextValue.slice(insertion.start + insertion.inserted.length);
-      commit(formatted);
-      const caret = insertion.start + wrapped.length;
-      window.requestAnimationFrame(() => {
-        const element = textareaRef.current;
-        if (!element) {
-          return;
-        }
-        element.focus();
-        element.setSelectionRange(caret, caret);
-        selectionRef.current = { start: caret, end: caret };
-      });
-      return;
-    }
-
-    commit(nextValue);
+  function applyFont(key: string) {
+    execCommand("fontName", FONT_MAP[key] || "inherit");
+    setActiveFont(key);
   }
 
   useEffect(() => {
-    setDraft(value);
-    prevValueRef.current = value;
-    if (!value.trim()) {
-      setActiveFormats({
-        bold: false,
-        italic: false,
-        underline: false,
-      });
+    if (value === lastEmittedRef.current) {
+      setPlaceholderVisible(!value.trim());
+      return;
     }
+    lastEmittedRef.current = value;
+    setDraft(value);
+    syncEditorHtml(value);
   }, [value]);
+
+  useEffect(() => {
+    // Seed the editable area once; later syncs happen through the value effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    syncEditorHtml(value);
+    const onSelectionChange = () => updateToolbarState();
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => document.removeEventListener("selectionchange", onSelectionChange);
+  }, []);
 
   return (
     <div
@@ -279,12 +372,11 @@ export default function RichTextEditor({
         </button>
         <span className="mx-1 hidden h-5 w-px bg-white/50 sm:block dark:bg-white/15" />
         <select
-          value={font}
+          value={activeFont}
           onChange={(event) => {
             const next = event.target.value;
-            setFont(next);
             if (next) {
-              applyMarkup(`[font=${next}]`, "[/font]");
+              applyFont(next);
             }
           }}
           className="h-8 rounded-full border border-white/60 bg-white/70 px-3 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
@@ -302,8 +394,12 @@ export default function RichTextEditor({
             <button
               key={swatch}
               type="button"
-              onClick={() => applyMarkup(`[color=${swatch}]`, "[/color]")}
-              className="h-5 w-5 rounded-full border border-black/10 shadow-sm transition-transform duration-100 ease-out active:scale-90"
+              onClick={() => applyColor(swatch)}
+              className={`h-5 w-5 rounded-full border border-black/10 shadow-sm transition-transform duration-100 ease-out active:scale-90 ${
+                activeColor === swatch
+                  ? "scale-110 ring-2 ring-pixel-ink ring-offset-2"
+                  : ""
+              }`}
               style={{ backgroundColor: swatch }}
               aria-label={`文字颜色 ${swatch}`}
               title={swatch}
@@ -311,18 +407,34 @@ export default function RichTextEditor({
           ))}
         </span>
       </div>
-      <textarea
-        ref={textareaRef}
-        value={draft}
-        onChange={(event) => handleTextChange(event.target.value)}
-        onSelect={syncSelection}
-        onKeyUp={syncSelection}
-        onBlur={syncSelection}
-        placeholder={placeholder}
-        rows={rows}
-        maxLength={maxLength}
-        className="w-full resize-y bg-transparent px-4 py-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-faint dark:text-white"
-      />
+
+      <div className="relative">
+        {placeholderVisible ? (
+          <p className="pointer-events-none absolute left-4 top-3 text-sm text-ink-faint">
+            {placeholder}
+          </p>
+        ) : null}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          onInput={commitFromEditor}
+          onBlur={saveSelection}
+          onKeyUp={() => {
+            saveSelection();
+            updateToolbarState();
+          }}
+          onMouseUp={() => {
+            saveSelection();
+            updateToolbarState();
+          }}
+          className="resize-y overflow-y-auto whitespace-pre-wrap break-words px-4 py-3 text-sm leading-relaxed text-ink outline-none [&_.rt-editor-heading]:mt-4 [&_.rt-editor-heading:first-child]:mt-0 [&_.rt-editor-heading]:font-semibold [&_strong]:font-semibold dark:text-white"
+          style={{ minHeight: `${rows * 1.5}rem` }}
+        />
+      </div>
+
       <div className="border-t border-white/50 bg-white/30 px-4 py-3 dark:border-white/10 dark:bg-white/5">
         <p className="pixel-font mb-2 text-[10px] text-ink-soft">PREVIEW</p>
         {draft.trim() ? (
