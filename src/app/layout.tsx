@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
+import SiteFrame from "@/components/SiteFrame";
 import { SettingsProvider } from "@/components/SettingsProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { PlayerProvider } from "@/components/PlayerProvider";
@@ -48,9 +47,7 @@ export default function RootLayout({
               >
                 跳到主要内容
               </a>
-              <Nav />
-              <main id="main">{children}</main>
-              <Footer />
+              <SiteFrame>{children}</SiteFrame>
               <ThemeToggle />
               <AdminFloating />
             </PlayerProvider>

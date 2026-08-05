@@ -1,11 +1,17 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useSettings } from "./SettingsProvider";
 
 export default function ThemeToggle() {
   const { settings, updateSettings } = useSettings();
+  const pathname = usePathname();
   const isDark = settings.theme === "dark";
+
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <button

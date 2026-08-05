@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Palette, Pencil, X } from "lucide-react";
 import { useAdmin } from "./AdminContext";
 import SiteStylePanel from "./SiteStylePanel";
 
 export default function AdminFloating() {
   const { isAdmin, editMode, setEditMode, logout } = useAdmin();
+  const pathname = usePathname();
   const [styleOpen, setStyleOpen] = useState(false);
 
-  if (!isAdmin) {
+  if (!isAdmin || pathname.startsWith("/admin")) {
     return null;
   }
 
