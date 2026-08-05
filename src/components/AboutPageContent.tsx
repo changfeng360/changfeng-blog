@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -20,6 +20,7 @@ import ProfileEditor from "@/components/admin/ProfileEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Profile } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
 const principles = [
   {
@@ -51,6 +52,13 @@ export default function AboutPageContent({
   const [current, setCurrent] = useState(profile);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const runtime = useRuntimeContent();
+
+  useEffect(() => {
+    if (runtime.profile) {
+      setCurrent(runtime.profile);
+    }
+  }, [runtime]);
 
   const copyEmail = async () => {
     try {

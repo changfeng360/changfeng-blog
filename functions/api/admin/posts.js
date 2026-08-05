@@ -1,3 +1,10 @@
+import {
+  kvAvailable,
+  parsePost,
+  readPosts,
+  savePosts,
+} from "../_lib/posts.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
@@ -128,6 +135,16 @@ export async function onRequestGet(context) {
   }
 
   try {
+    if (kvAvailable(context.env)) {
+      const posts = await readPosts(context.env);
+      return json(
+        posts.map((post) => ({
+          name: `${post.slug}.mdx`,
+          slug: post.slug,
+          path: `${POSTS_PATH}/${post.slug}.mdx`,
+        })),
+      );
+    }
     const repo = context.env.GITHUB_REPO || DEFAULT_REPO;
     const branch = context.env.GITHUB_BRANCH || DEFAULT_BRANCH;
     const response = await githubFetch(
@@ -168,6 +185,17 @@ export async function onRequestPost(context) {
     }
     if (!content) {
       return json({ error: "Post content is required" }, 400);
+    }
+
+    if (kvAvailable(context.env)) {
+      const posts = await readPosts(context.env);
+      if (posts.some((post) => post.slug === slug)) {
+        return json({ error: "Post already exists" }, 409);
+      }
+      const post = parsePost(content, slug);
+      posts.unshift(post);
+      await savePosts(context.env, posts);
+      return json({ ok: true, slug, path: `${POSTS_PATH}/${slug}.mdx`, storage: "kv" });
     }
 
     const filePath = `${POSTS_PATH}/${slug}.mdx`;

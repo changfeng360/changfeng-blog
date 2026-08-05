@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -17,6 +17,7 @@ import AdminInlineEditor, {
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Post } from "@/data/content";
 import { fadeUp, SPRING_SOFT, staggerContainer } from "@/lib/motion";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
 type RangeKey = "日" | "周" | "月" | "年";
 
@@ -57,6 +58,13 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
     null,
   );
   const [range, setRange] = useState<RangeKey>("月");
+  const runtime = useRuntimeContent();
+
+  useEffect(() => {
+    if (runtime.posts?.length) {
+      setPostList(runtime.posts);
+    }
+  }, [runtime]);
 
   const filtered = useMemo(() => {
     const cutoff = Date.now() - ranges[range] * 24 * 60 * 60 * 1000;
@@ -208,7 +216,7 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
                 className="mt-2 text-sm leading-relaxed text-ink-soft"
               />
               <Link
-                href={`/blog/${post.slug}`}
+                href={`/article?slug=${encodeURIComponent(post.slug)}`}
                 className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent-blue"
               >
                 阅读笔记

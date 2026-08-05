@@ -1,3 +1,11 @@
+import {
+  kvAvailable,
+  parsePost,
+  readPosts,
+  savePosts,
+  serializePost,
+} from "../../_lib/posts.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
@@ -182,6 +190,18 @@ export async function onRequestGet(context) {
     if (!/^[a-z0-9-]+$/i.test(slug)) {
       return json({ error: "Invalid slug" }, 400);
     }
+    if (kvAvailable(context.env)) {
+      const posts = await readPosts(context.env);
+      const post = posts.find((item) => item.slug === slug);
+      if (!post) {
+        return json({ error: "Post not found" }, 404);
+      }
+      return json({
+        slug,
+        path: `${POSTS_PATH}/${slug}.mdx`,
+        content: serializePost(post),
+      });
+    }
     const post = await findPost(slug, context.env);
     if (!post) {
       return json({ error: "Post not found" }, 404);
@@ -207,6 +227,17 @@ export async function onRequestPut(context) {
     const content = String(body.content || "").trim();
     if (!content) {
       return json({ error: "Post content is required" }, 400);
+    }
+
+    if (kvAvailable(context.env)) {
+      const posts = await readPosts(context.env);
+      const index = posts.findIndex((item) => item.slug === slug);
+      if (index < 0) {
+        return json({ error: "Post not found" }, 404);
+      }
+      posts[index] = parsePost(content, slug);
+      await savePosts(context.env, posts);
+      return json({ ok: true, storage: "kv" });
     }
 
     const post = await findPost(slug, context.env);
@@ -237,6 +268,15 @@ export async function onRequestDelete(context) {
     const slug = String(context.params.slug || "");
     if (!/^[a-z0-9-]+$/i.test(slug)) {
       return json({ error: "Invalid slug" }, 400);
+    }
+    if (kvAvailable(context.env)) {
+      const posts = await readPosts(context.env);
+      const next = posts.filter((item) => item.slug !== slug);
+      if (next.length === posts.length) {
+        return json({ error: "Post not found" }, 404);
+      }
+      await savePosts(context.env, next);
+      return json({ ok: true, storage: "kv" });
     }
     const post = await findPost(slug, context.env);
     if (!post) {

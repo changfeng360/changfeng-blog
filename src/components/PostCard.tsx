@@ -24,7 +24,10 @@ export default function PostCard({ post }: { post: Post }) {
       transition={SPRING_SOFT}
       className="card-hover glass rounded-4xl"
     >
-      <Link href={`/blog/${post.slug}`} className="block p-6 sm:p-7">
+      <Link
+        href={`/article?slug=${encodeURIComponent(post.slug)}`}
+        className="block p-6 sm:p-7"
+      >
         <div className="flex items-center justify-between">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/5 bg-white/70 text-lg shadow-apple-sm">
             {post.emoji}

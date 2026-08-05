@@ -1,3 +1,10 @@
+import {
+  KV_KEYS,
+  kvAvailable,
+  readJson,
+  writeJson,
+} from "./_lib/kv.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
@@ -127,6 +134,39 @@ async function writeFile(content, message, env, sha) {
     },
   );
   return response.json();
+}
+
+async function loadMessages(env) {
+  if (kvAvailable(env)) {
+    const stored = await readJson(env, KV_KEYS.guestbook);
+    if (Array.isArray(stored)) {
+      return stored;
+    }
+    try {
+      const file = await getFile(env);
+      const seeded = JSON.parse(file.content || "[]");
+      await writeJson(env, KV_KEYS.guestbook, seeded);
+      return seeded;
+    } catch {
+      return [];
+    }
+  }
+  const file = await getFile(env);
+  return JSON.parse(file.content || "[]");
+}
+
+async function saveMessages(env, messages, message) {
+  if (kvAvailable(env)) {
+    await writeJson(env, KV_KEYS.guestbook, messages);
+    return;
+  }
+  const file = await getFile(env);
+  await writeFile(
+    JSON.stringify(messages, null, 2),
+    message,
+    env,
+    file.sha,
+  );
 }
 
 function createId() {
@@ -415,8 +455,7 @@ async function sendEmail(env, to, subject, text) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   try {
-    const file = await getFile(env);
-    const messages = JSON.parse(file.content || "[]");
+    const messages = await loadMessages(env);
     return json({
       messages: sanitizeMessages(messages, authorizeAdmin(request, env)),
     });
@@ -430,8 +469,7 @@ export async function onRequestPost(context) {
   const isAdmin = authorizeAdmin(request, env);
   try {
     const body = await request.json();
-    const file = await getFile(env);
-    const messages = JSON.parse(file.content || "[]");
+    const messages = await loadMessages(env);
 
     if (body.action === "add") {
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
@@ -451,11 +489,10 @@ export async function onRequestPost(context) {
         createdAt: new Date().toISOString(),
         replies: [],
       });
-      await writeFile(
-        JSON.stringify(messages, null, 2),
-        isAdmin ? "博主留言" : "新增访客留言",
+      await saveMessages(
         env,
-        file.sha,
+        messages,
+        isAdmin ? "博主留言" : "新增访客留言",
       );
       let emailResult = { skipped: true };
       if (!isAdmin) {
@@ -500,11 +537,10 @@ export async function onRequestPost(context) {
         createdAt: new Date().toISOString(),
       };
       parent.replies.push(reply);
-      await writeFile(
-        JSON.stringify(messages, null, 2),
-        isAdmin ? "博主回复留言" : "新增留言回复",
+      await saveMessages(
         env,
-        file.sha,
+        messages,
+        isAdmin ? "博主回复留言" : "新增留言回复",
       );
       let emailResult = { skipped: true };
       if (isAdmin) {
@@ -557,12 +593,7 @@ export async function onRequestPost(context) {
         target.likedBy.push(key);
         target.likes = (target.likes || 0) + 1;
       }
-      await writeFile(
-        JSON.stringify(messages, null, 2),
-        "点赞留言",
-        env,
-        file.sha,
-      );
+      await saveMessages(env, messages, "点赞留言");
       return json({
         ok: true,
         messages: sanitizeMessages(messages, isAdmin),
@@ -582,8 +613,7 @@ export async function onRequestDelete(context) {
   }
   try {
     const body = await request.json();
-    const file = await getFile(env);
-    const messages = JSON.parse(file.content || "[]");
+    const messages = await loadMessages(env);
     let next = messages;
     if (body.parentId) {
       next = messages.map((message) => {
@@ -600,12 +630,7 @@ export async function onRequestDelete(context) {
     } else {
       next = messages.filter((message) => message.id !== body.id);
     }
-    await writeFile(
-      JSON.stringify(next, null, 2),
-      "删除留言",
-      env,
-      file.sha,
-    );
+    await saveMessages(env, next, "删除留言");
     return json({
       ok: true,
       messages: sanitizeMessages(next, true),

@@ -47,5 +47,6 @@ export async function onRequestPost(context) {
   return json({
     ok: true,
     githubToken: Boolean(context.env.GITHUB_TOKEN),
+    kv: Boolean(context.env.BLOG_KV),
   });
 }

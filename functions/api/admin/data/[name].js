@@ -1,3 +1,10 @@
+import {
+  KV_KEYS,
+  kvAvailable,
+  readJson,
+  writeJson,
+} from "../../_lib/kv.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
@@ -7,6 +14,13 @@ const DATA_FILES = {
   projects: "content/projects.json",
   friends: "content/friends.json",
   site: "content/site.json",
+};
+
+const KV_KEY_BY_NAME = {
+  profile: KV_KEYS.profile,
+  projects: KV_KEYS.projects,
+  friends: KV_KEYS.friends,
+  site: KV_KEYS.site,
 };
 
 function json(data, status = 200) {
@@ -151,8 +165,21 @@ export async function onRequestGet(context) {
     if (!filePath) {
       return json({ error: "Unknown data file" }, 404);
     }
+    if (kvAvailable(context.env)) {
+      const stored = await readJson(
+        context.env,
+        KV_KEY_BY_NAME[name],
+      );
+      if (stored !== null && stored !== undefined) {
+        return json(stored);
+      }
+    }
     const file = await getFile(filePath, context.env);
-    return json(JSON.parse(file.content));
+    const parsed = JSON.parse(file.content);
+    if (kvAvailable(context.env)) {
+      await writeJson(context.env, KV_KEY_BY_NAME[name], parsed);
+    }
+    return json(parsed);
   } catch (error) {
     return json({ error: error.message }, 500);
   }
@@ -174,6 +201,11 @@ export async function onRequestPut(context) {
     const data = await context.request.json();
     if (data === null || typeof data !== "object") {
       return json({ error: "Data must be a JSON object or array" }, 400);
+    }
+
+    if (kvAvailable(context.env)) {
+      await writeJson(context.env, KV_KEY_BY_NAME[name], data);
+      return json({ ok: true, storage: "kv" });
     }
 
     const existing = await getFile(filePath, context.env);

@@ -1,3 +1,10 @@
+import {
+  KV_KEYS,
+  kvAvailable,
+  readJson,
+  writeJson,
+} from "../_lib/kv.js";
+
 const GITHUB_API = "https://api.github.com";
 const DEFAULT_REPO = "changfeng360/changfeng-blog";
 const DEFAULT_BRANCH = "main";
@@ -133,6 +140,21 @@ async function writeFile(filePath, content, message, env, sha) {
   return response.json();
 }
 
+async function getProfileData(env) {
+  if (kvAvailable(env)) {
+    const stored = await readJson(env, KV_KEYS.profile);
+    if (stored) {
+      return stored;
+    }
+    const file = await getFile(PROFILE_PATH, env);
+    const parsed = JSON.parse(file.content);
+    await writeJson(env, KV_KEYS.profile, parsed);
+    return parsed;
+  }
+  const file = await getFile(PROFILE_PATH, env);
+  return JSON.parse(file.content);
+}
+
 export async function onRequestGet(context) {
   const auth = authorize(context.request, context.env);
   if (!auth.ok) {
@@ -140,8 +162,7 @@ export async function onRequestGet(context) {
   }
 
   try {
-    const file = await getFile(PROFILE_PATH, context.env);
-    return json(JSON.parse(file.content));
+    return json(await getProfileData(context.env));
   } catch (error) {
     return json({ error: error.message }, 500);
   }
@@ -185,6 +206,10 @@ export async function onRequestPut(context) {
       );
     }
 
+    if (kvAvailable(context.env)) {
+      await writeJson(context.env, KV_KEYS.profile, profile);
+      return json({ ok: true, storage: "kv" });
+    }
     const existing = await getFile(PROFILE_PATH, context.env);
     await writeFile(
       PROFILE_PATH,

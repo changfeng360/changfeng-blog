@@ -29,6 +29,25 @@
 
 未配置邮件变量时，留言和回复仍会正常显示在网页上，只是不会发送邮件。
 
+## Cloudflare KV 数据存储
+
+从这一版开始，后台保存、留言读写都会优先使用 Cloudflare KV，不再要求每次修改都推送 GitHub。
+
+### 第一次配置
+
+1. 打开 Cloudflare Dashboard > Workers & Pages > KV，创建一个命名空间。
+2. 进入 Pages 项目 > Settings > Functions > KV namespace bindings。
+3. 变量名填 `BLOG_KV`，绑定刚创建的 KV 命名空间。
+4. 重新部署一次。
+
+### 迁移说明
+
+- 第一次读取留言或文章时，如果 KV 还没有数据，会尝试从 GitHub 仓库自动同步一份作为初始数据。
+- 同步后，之后的留言、文章、项目、友链、个人简介、站点样式都会直接写入 KV。
+- `GITHUB_TOKEN` 仅在 KV 为空、需要首次迁移时使用；迁移完成后可以保留，也可以不再依赖它。
+
+本地调试可先修改 `wrangler.toml` 中的 KV namespace id，再通过 `wrangler pages dev` 提供 `BLOG_KV` 绑定。
+
 ## 留言板
 
 - 访客留言和回复只需填写昵称；邮箱为选填，填写后才用于接收博主回复邮件。

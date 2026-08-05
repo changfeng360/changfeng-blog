@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -26,6 +26,7 @@ import ProfileEditor from "@/components/admin/ProfileEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Post, Profile } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
 const nowList = [
   "重写个人博客的像素主题",
@@ -40,15 +41,26 @@ export default function HomePage({
   posts: Post[];
   profile: Profile;
 }) {
-  const quickLinks = [
-    { href: "/blog", label: "近期文章", meta: `${posts.length} notes`, icon: Package },
-    { href: "/projects", label: "项目档案", meta: "06 builds", icon: Star },
-    { href: "/about", label: "关于我", meta: "01 profile", icon: UserRound },
-  ];
   const { editMode } = useAdmin();
+  const [livePosts, setLivePosts] = useState(posts);
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [editingProfile, setEditingProfile] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
+  const runtime = useRuntimeContent();
+  const quickLinks = [
+    { href: "/blog", label: "近期文章", meta: `${livePosts.length} notes`, icon: Package },
+    { href: "/projects", label: "项目档案", meta: "06 builds", icon: Star },
+    { href: "/about", label: "关于我", meta: "01 profile", icon: UserRound },
+  ];
+
+  useEffect(() => {
+    if (runtime.posts?.length) {
+      setLivePosts(runtime.posts);
+    }
+    if (runtime.profile) {
+      setCurrentProfile(runtime.profile);
+    }
+  }, [runtime]);
 
   const copyEmail = async () => {
     const email = currentProfile.email;
@@ -218,14 +230,14 @@ export default function HomePage({
                 <span className="text-xs text-ink-soft">最新笔记</span>
               </div>
               <p className="mt-4 text-lg font-semibold leading-snug text-ink">
-                {posts[0].title}
+                {livePosts[0].title}
               </p>
               <RichText
-                content={posts[0].excerpt}
+                content={livePosts[0].excerpt}
                 className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft"
               />
               <Link
-                href={`/blog/${posts[0].slug}`}
+                href={`/article?slug=${encodeURIComponent(livePosts[0].slug)}`}
                 className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-medium text-accent-blue"
               >
                 阅读全文
@@ -324,7 +336,7 @@ export default function HomePage({
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.slice(1, 4).map((post) => (
+            {livePosts.slice(1, 4).map((post) => (
               <PostCard key={post.slug} post={post} />
             ))}
           </div>

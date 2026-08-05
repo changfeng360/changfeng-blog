@@ -1,0 +1,8 @@
+name = "changfeng-blog"
+compatibility_date = "2026-08-05"
+
+# 本地开发用；Cloudflare Pages 线上需要在项目 Settings > Functions > KV namespace bindings
+# 中创建并绑定名为 BLOG_KV 的命名空间。
+kv_namespaces = [
+  { binding = "BLOG_KV", id = "replace_with_your_kv_namespace_id" }
+]

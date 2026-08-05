@@ -85,6 +85,29 @@ export function SettingsProvider({
   }, [settings.theme]);
 
   useEffect(() => {
+    fetch("/api/content")
+      .then((response) => response.json().catch(() => ({})))
+      .then((data: { site?: SiteSettingsFromApi }) => {
+        const site = data.site;
+        if (!site) {
+          return;
+        }
+        const root = window.document.documentElement;
+        root.style.setProperty("--site-base-size", `${site.baseFontSize}px`);
+        root.style.setProperty("--site-accent", site.accentColor);
+        root.style.setProperty("--site-bg", site.backgroundColor);
+        root.style.setProperty("--site-dark-bg", site.darkBackground);
+        root.style.setProperty(
+          "--site-heading-style",
+          site.headingItalic ? "italic" : "normal",
+        );
+      })
+      .catch(() => {
+        // Keep the build-time site settings when the API is unavailable.
+      });
+  }, []);
+
+  useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
@@ -98,6 +121,14 @@ export function SettingsProvider({
     </SettingsContext.Provider>
   );
 }
+
+type SiteSettingsFromApi = {
+  baseFontSize: number;
+  headingItalic: boolean;
+  accentColor: string;
+  backgroundColor: string;
+  darkBackground: string;
+};
 
 export function useSettings() {
   const context = useContext(SettingsContext);

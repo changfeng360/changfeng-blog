@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -18,6 +18,7 @@ import AdminInlineEditor, {
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Friend } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 import friendsJson from "../../../content/friends.json";
 
 export default function SharePage() {
@@ -28,6 +29,13 @@ export default function SharePage() {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("全部");
+  const runtime = useRuntimeContent();
+
+  useEffect(() => {
+    if (runtime.friends) {
+      setFriends(runtime.friends);
+    }
+  }, [runtime]);
 
   const categories = useMemo(
     () => ["全部", ...Array.from(new Set(friends.map((friend) => friend.category)))],

@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import PageHeader from "@/components/PageHeader";
 import ProjectCard from "@/components/ProjectCard";
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Project } from "@/data/content";
 import { staggerContainer } from "@/lib/motion";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 import projectsJson from "../../../content/projects.json";
 
 export default function ProjectsPage() {
@@ -16,8 +17,15 @@ export default function ProjectsPage() {
   );
   const allTags = useMemo(
     () => Array.from(new Set(projects.flatMap((project) => project.stack))),
-    [],
+    [projects],
   );
+  const runtime = useRuntimeContent();
+
+  useEffect(() => {
+    if (runtime.projects) {
+      setProjects(runtime.projects);
+    }
+  }, [runtime]);
   const [activeTag, setActiveTag] = useState("全部");
 
   const visible = useMemo(
