@@ -20,6 +20,17 @@
         "likes": 0,
         "likedBy": [],
         "createdAt": "2026-08-05T08:36:53.988Z"
+      },
+      {
+        "id": "471d6eb9-0618-44cc-a30c-da8042c143aa",
+        "nickname": "长风",
+        "content": "[color=#ff3b30][i][b]你好[/b][/i][/color]",
+        "email": "",
+        "images": [],
+        "isAuthor": true,
+        "likes": 0,
+        "likedBy": [],
+        "createdAt": "2026-08-05T08:52:08.155Z"
       }
     ]
   }
