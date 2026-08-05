@@ -19,6 +19,7 @@ import {
   Reply,
   Save,
   Settings2,
+  ThumbsUp,
   Trash2,
   UserRound,
   X,
@@ -83,6 +84,7 @@ type AdminGuestReply = {
   avatarUrl?: string;
   images?: string[];
   isAuthor: boolean;
+  adminLiked?: boolean;
   likes: number;
   createdAt: string;
 };
@@ -323,7 +325,10 @@ export default function AdminConsole() {
     if (!response.ok) {
       throw new Error(data.error || "留言请求失败");
     }
-    return data as { messages: AdminGuestMessage[] };
+    return data as {
+      messages: AdminGuestMessage[];
+      email?: { skipped?: boolean; reason?: string; error?: string };
+    };
   }
 
   async function loadPosts(authToken: string) {
@@ -647,6 +652,27 @@ export default function AdminConsole() {
     }
   }
 
+  async function likeGuestbookEntry(id: string, parentId?: string) {
+    setSaving(true);
+    setStatus("");
+    try {
+      const data = await guestbookApi({
+        method: "POST",
+        body: JSON.stringify({
+          action: "like",
+          id,
+          parentId,
+        }),
+      });
+      setGuestbookMessages(data.messages || []);
+      setStatus("已点赞");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "点赞失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function submitGuestReply() {
     if (!guestReplyTarget) {
       return;
@@ -672,7 +698,13 @@ export default function AdminConsole() {
       setGuestbookMessages(data.messages || []);
       setGuestReplyTarget(null);
       setGuestReplyContent("");
-      setStatus("回复已发布");
+      if (data.email?.reason === "missing_resend_config") {
+        setStatus("回复已发布，但邮件未发送：缺少 RESEND 邮件配置");
+      } else if (data.email?.error) {
+        setStatus(`回复已发布，但邮件发送失败：${data.email.error}`);
+      } else {
+        setStatus("回复已发布");
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "回复失败");
     } finally {
@@ -1085,6 +1117,7 @@ export default function AdminConsole() {
                     onDelete={(id, parentId) =>
                       deleteGuestbookEntry(id, parentId)
                     }
+                    onLike={(id, parentId) => likeGuestbookEntry(id, parentId)}
                   />
                 ))}
                 {!guestbookLoading &&
@@ -1837,10 +1870,12 @@ function AdminGuestbookCard({
   message,
   onReply,
   onDelete,
+  onLike,
 }: {
   message: AdminGuestMessage;
   onReply: (messageId: string) => void;
   onDelete: (id: string, parentId?: string) => void;
+  onLike: (id: string, parentId?: string) => void;
 }) {
   return (
     <article className="glass rounded-4xl p-5 sm:p-6">
@@ -1859,6 +1894,11 @@ function AdminGuestbookCard({
                   博主
                 </span>
               ) : null}
+              {message.adminLiked ? (
+                <span className="chip pixel-font !text-[11px] text-accent-gold">
+                  博主赞了
+                </span>
+              ) : null}
             </div>
             <p className="mt-0.5 break-words text-xs text-ink-soft">
               {formatFullTime(message.createdAt)}
@@ -1867,6 +1907,19 @@ function AdminGuestbookCard({
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={() => onLike(message.id)}
+            disabled={message.adminLiked}
+            className="icon-button !h-8 !w-8 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="博主点赞"
+          >
+            <ThumbsUp
+              className={`h-3.5 w-3.5 ${
+                message.adminLiked ? "fill-pixel-ink" : ""
+              }`}
+            />
+          </button>
           <button
             type="button"
             onClick={() => onReply(message.id)}
@@ -1918,12 +1971,30 @@ function AdminGuestbookCard({
                       博主
                     </span>
                   ) : null}
+                  {reply.adminLiked ? (
+                    <span className="chip pixel-font !text-[11px] text-accent-gold">
+                      博主赞了
+                    </span>
+                  ) : null}
                   <span className="break-words text-xs text-ink-soft">
                     {formatFullTime(reply.createdAt)}
                     {reply.email ? ` · ${reply.email}` : ""}
                   </span>
                 </div>
                 <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onLike(reply.id, message.id)}
+                    disabled={reply.adminLiked}
+                    className="icon-button !h-7 !w-7 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="博主点赞"
+                  >
+                    <ThumbsUp
+                      className={`h-3 w-3 ${
+                        reply.adminLiked ? "fill-pixel-ink" : ""
+                      }`}
+                    />
+                  </button>
                   <button
                     type="button"
                     onClick={() => onReply(message.id)}

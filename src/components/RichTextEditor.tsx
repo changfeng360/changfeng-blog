@@ -159,6 +159,23 @@ function serializeNode(node: Node): string {
   if (tag === "u") {
     return `[u]${inner}[/u]`;
   }
+  const fontWeight = element.style.fontWeight;
+  const fontStyle = element.style.fontStyle;
+  const textDecoration =
+    element.style.textDecorationLine || element.style.textDecoration || "";
+  if (
+    fontWeight === "bold" ||
+    fontWeight === "bolder" ||
+    (Number(fontWeight) >= 600 && fontWeight !== "")
+  ) {
+    inner = `[b]${inner}[/b]`;
+  }
+  if (fontStyle === "italic" || fontStyle === "oblique") {
+    inner = `[i]${inner}[/i]`;
+  }
+  if (textDecoration.includes("underline")) {
+    inner = `[u]${inner}[/u]`;
+  }
   const color =
     element.style.color || (tag === "font" ? element.getAttribute("color") : null);
   if (color) {
@@ -201,6 +218,9 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
   const suppressToolbarSyncRef = useRef(false);
+  const suppressToolbarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
   const [activeFormats, setActiveFormats] = useState<FormatState>({
@@ -300,7 +320,12 @@ export default function RichTextEditor({
     if (!editor) {
       return;
     }
-    if (command === "foreColor") {
+    if (
+      command === "bold" ||
+      command === "italic" ||
+      command === "underline" ||
+      command === "foreColor"
+    ) {
       document.execCommand("styleWithCSS", false, "true");
     }
     document.execCommand(command, false, commandValue);
@@ -309,6 +334,9 @@ export default function RichTextEditor({
   }
 
   function applyFormat(kind: FormatKind) {
+    if (suppressToolbarTimeoutRef.current) {
+      window.clearTimeout(suppressToolbarTimeoutRef.current);
+    }
     suppressToolbarSyncRef.current = true;
     saveSelection();
     let wasActive = activeFormats[kind];
@@ -319,9 +347,10 @@ export default function RichTextEditor({
     }
     execCommand(kind);
     setActiveFormats((current) => ({ ...current, [kind]: !wasActive }));
-    requestAnimationFrame(() => {
+    suppressToolbarTimeoutRef.current = window.setTimeout(() => {
       suppressToolbarSyncRef.current = false;
-    });
+      suppressToolbarTimeoutRef.current = null;
+    }, 400);
   }
 
   function applyColor(swatch: string) {
@@ -360,7 +389,12 @@ export default function RichTextEditor({
     syncEditorHtml(value);
     const onSelectionChange = () => updateToolbarState();
     document.addEventListener("selectionchange", onSelectionChange);
-    return () => document.removeEventListener("selectionchange", onSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      if (suppressToolbarTimeoutRef.current) {
+        window.clearTimeout(suppressToolbarTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -372,6 +406,7 @@ export default function RichTextEditor({
           type="button"
           onClick={() => applyFormat("bold")}
           onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.bold}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.bold ? "!bg-pixel-slate !text-white" : ""
@@ -385,6 +420,7 @@ export default function RichTextEditor({
           type="button"
           onClick={() => applyFormat("italic")}
           onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.italic}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.italic ? "!bg-pixel-slate !text-white" : ""
@@ -398,6 +434,7 @@ export default function RichTextEditor({
           type="button"
           onClick={() => applyFormat("underline")}
           onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.underline}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.underline ? "!bg-pixel-slate !text-white" : ""

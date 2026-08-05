@@ -290,14 +290,19 @@ function withoutPrivateFields(item) {
   if (!item) {
     return item;
   }
-  const { deleteToken, visitorKey, email, ...rest } = item;
-  return email ? { ...rest, email } : rest;
+  const { deleteToken, visitorKey, likedBy, email, ...rest } = item;
+  const cleaned = email ? { ...rest, email } : rest;
+  cleaned.adminLiked =
+    Array.isArray(likedBy) && likedBy.includes("admin");
+  return cleaned;
 }
 
 function sanitizeMessages(messages, includeEmail = false) {
   const decorate = (item) => {
     const cleaned = withoutPrivateFields(item);
-    if (cleaned.email) {
+    if (cleaned.isAuthor) {
+      cleaned.avatarUrl = "/pixels/avatar-circle.png";
+    } else if (cleaned.email) {
       cleaned.avatarUrl = avatarUrlFor(cleaned.email);
     }
     if (!includeEmail && cleaned.email) {
@@ -386,7 +391,7 @@ async function sendEmail(env, to, subject, text) {
   const from = env.RESEND_FROM_EMAIL;
   const recipient = to || env.RESEND_TO_EMAIL || env.OWNER_EMAIL;
   if (!apiKey || !from || !recipient) {
-    return { skipped: true };
+    return { skipped: true, reason: "missing_resend_config" };
   }
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -546,7 +551,7 @@ export async function onRequestPost(context) {
       if (!target) {
         return json({ error: "留言不存在" }, 404);
       }
-      const key = await visitorKey(request);
+      const key = isAdmin ? "admin" : await visitorKey(request);
       target.likedBy = target.likedBy || [];
       if (!target.likedBy.includes(key)) {
         target.likedBy.push(key);

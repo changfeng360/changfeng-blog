@@ -23,6 +23,7 @@ type GuestReply = {
   avatarUrl?: string;
   images?: string[];
   isAuthor: boolean;
+  adminLiked?: boolean;
   likes: number;
   createdAt: string;
 };
@@ -137,6 +138,7 @@ export default function Guestbook() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
@@ -191,6 +193,7 @@ export default function Guestbook() {
     }
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const response = await fetch("/api/guestbook", {
         method: "POST",
@@ -209,6 +212,11 @@ export default function Guestbook() {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "发表失败");
+      }
+      if (data.email?.reason === "missing_resend_config") {
+        setNotice("留言已发布，但邮件未发送：缺少 RESEND 邮件配置");
+      } else if (data.email?.error) {
+        setNotice(`留言已发布，但邮件发送失败：${data.email.error}`);
       }
       setMessages(data.messages || []);
       setNickname("");
@@ -245,6 +253,7 @@ export default function Guestbook() {
     }
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const response = await fetch("/api/guestbook", {
         method: "POST",
@@ -264,6 +273,11 @@ export default function Guestbook() {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "回复失败");
+      }
+      if (data.email?.reason === "missing_resend_config") {
+        setNotice("回复已发布，但邮件未发送：缺少 RESEND 邮件配置");
+      } else if (data.email?.error) {
+        setNotice(`回复已发布，但邮件发送失败：${data.email.error}`);
       }
       setMessages(data.messages || []);
       setReplyTarget(null);
@@ -337,10 +351,12 @@ export default function Guestbook() {
 
   function openReply(messageId: string) {
     setError("");
+    setNotice("");
     setReplyTarget(messageId);
   }
 
   function closeReply() {
+    setNotice("");
     setReplyTarget(null);
     setReplyNickname("");
     setReplyEmail("");
@@ -371,6 +387,7 @@ export default function Guestbook() {
             type="button"
             onClick={() => {
               setError("");
+              setNotice("");
               setModalOpen(true);
             }}
             className="pixel-btn rounded-full px-5 py-3"
@@ -455,6 +472,9 @@ export default function Guestbook() {
           {error ? (
             <p className="text-sm text-accent-pink">{error}</p>
           ) : null}
+          {notice ? (
+            <p className="text-sm text-accent-mint">{notice}</p>
+          ) : null}
           <div className="flex flex-wrap justify-end gap-2 pt-1">
             <button
               type="button"
@@ -524,6 +544,9 @@ export default function Guestbook() {
           />
           {error ? (
             <p className="text-sm text-accent-pink">{error}</p>
+          ) : null}
+          {notice ? (
+            <p className="text-sm text-accent-mint">{notice}</p>
           ) : null}
           <div className="flex flex-wrap justify-end gap-2 pt-1">
             <button
@@ -726,6 +749,11 @@ function GuestMessageCard({
                   博主
                 </span>
               ) : null}
+              {message.adminLiked ? (
+                <span className="chip pixel-font !text-[11px] text-accent-gold">
+                  博主赞了
+                </span>
+              ) : null}
             </div>
             <p className="mt-0.5 text-xs text-ink-soft">
               {formatTime(message.createdAt)}
@@ -798,6 +826,11 @@ function GuestMessageCard({
                   {reply.isAuthor ? (
                     <span className="chip pixel-font !text-[11px] text-accent-pink">
                       博主
+                    </span>
+                  ) : null}
+                  {reply.adminLiked ? (
+                    <span className="chip pixel-font !text-[11px] text-accent-gold">
+                      博主赞了
                     </span>
                   ) : null}
                   <span className="text-xs text-ink-soft">

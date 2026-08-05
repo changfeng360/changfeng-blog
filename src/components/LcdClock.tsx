@@ -53,6 +53,48 @@ const BEIJING_FALLBACK: WeatherInfo = {
   humidity: 60,
 };
 
+const TRADITIONAL_TO_SIMPLIFIED: Record<string, string> = {
+  區: "区",
+  縣: "县",
+  鄉: "乡",
+  鎮: "镇",
+  灣: "湾",
+  臺: "台",
+  東: "东",
+  廣: "广",
+  龍: "龙",
+  鳳: "凤",
+  陽: "阳",
+  陰: "阴",
+  長: "长",
+  門: "门",
+  廈: "厦",
+  島: "岛",
+  寧: "宁",
+  蘇: "苏",
+  贛: "赣",
+  閩: "闽",
+  魯: "鲁",
+  陝: "陕",
+  瓊: "琼",
+  遼: "辽",
+  滬: "沪",
+  雲: "云",
+  貴: "贵",
+  萬: "万",
+  與: "与",
+  為: "为",
+  點: "点",
+  號: "号",
+};
+
+function simplifyLocation(value: string) {
+  return String(value ?? "").replace(
+    /[區縣鄉鎮灣臺東廣龍鳳陽陰長門廈島寧蘇贛閩魯陝瓊遼滬雲貴萬與為點號]/g,
+    (char) => TRADITIONAL_TO_SIMPLIFIED[char] || char,
+  );
+}
+
 async function fetchWithTimeout(url: string, timeoutMs = 9000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -99,9 +141,11 @@ async function fetchBigDataCloudName(latitude: number, longitude: number) {
     throw new Error("BigDataCloud request failed");
   }
   const data = await response.json();
-  const province = data.principalSubdivision || data.region || "";
-  const city = data.city || data.locality || "";
-  const district = data.locality || "";
+  const province = simplifyLocation(
+    data.principalSubdivision || data.region || "",
+  );
+  const city = simplifyLocation(data.city || data.locality || "");
+  const district = simplifyLocation(data.locality || "");
   const displayDistrict = stripRepeatedCityPrefix(district || "", city || "");
   const parts = [province, city, displayDistrict].filter(Boolean);
   const uniqueParts = parts.filter(
@@ -113,9 +157,9 @@ async function fetchBigDataCloudName(latitude: number, longitude: number) {
 
 async function fetchLocationName(latitude: number, longitude: number) {
   try {
-    return await fetchNominatimName(latitude, longitude);
+    return simplifyLocation(await fetchNominatimName(latitude, longitude));
   } catch {
-    return await fetchBigDataCloudName(latitude, longitude);
+    return simplifyLocation(await fetchBigDataCloudName(latitude, longitude));
   }
 }
 
@@ -149,28 +193,36 @@ function getLocationName(
   displayName?: string,
 ) {
   const province =
-    address.province ||
-    address.state ||
-    address.region ||
-    "";
+    simplifyLocation(
+      address.province ||
+        address.state ||
+        address.region ||
+        "",
+    );
   const namedCity =
-    address.city ||
-    address.state_district ||
-    address.municipality;
+    simplifyLocation(
+      address.city ||
+        address.state_district ||
+        address.municipality ||
+        "",
+    );
   const city =
     (namedCity?.endsWith("市") ? namedCity : undefined) ||
     getCityFromDisplayName(displayName) ||
     namedCity;
   const district =
-    address.county ||
-    address.district;
+    simplifyLocation(address.county || address.district || "");
   const displayDistrict = stripRepeatedCityPrefix(district || "", city || "");
   const parts = [province, city, displayDistrict].filter(Boolean);
   const uniqueParts = parts.filter(
     (part, index) => part !== parts[index - 1],
   );
 
-  return uniqueParts.join(" ") || address.country || "Unknown";
+  return (
+    uniqueParts.join(" ") ||
+    simplifyLocation(address.country || "") ||
+    "Unknown"
+  );
 }
 
 function pad(value: number) {
