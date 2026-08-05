@@ -60,7 +60,7 @@ export default function PixelCalendar() {
       </div>
 
       <div className="pixel-panel rounded-2xl p-3">
-        <div className="pixel-font mb-3 flex items-center justify-between text-[12px] text-pixel-ink">
+        <div className="pixel-font mb-3 flex items-center justify-between text-[12px] text-ink">
           <span>{view.year}</span>
           <span className="text-accent-pink">
             {new Intl.DateTimeFormat("en-US", { month: "long" }).format(
@@ -72,7 +72,7 @@ export default function PixelCalendar() {
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="pixel-font pb-1 text-[7px] text-pixel-ink/60"
+              className="pixel-font pb-1 text-[7px] text-ink/60"
             >
               {day}
             </div>
@@ -86,8 +86,8 @@ export default function PixelCalendar() {
                 <span
                   className={`pixel-font flex h-7 w-7 items-center justify-center text-[14px] ${
                     isToday(day)
-                      ? "border-2 border-pixel-ink bg-pixel-gold text-pixel-ink shadow-pixel-sm"
-                      : "text-pixel-ink/80"
+                      ? "border-2 border-ink bg-pixel-gold text-pixel-ink shadow-pixel-sm dark:border-white dark:text-pixel-ink"
+                      : "text-ink/80"
                   }`}
                 >
                   {day}
@@ -99,9 +99,9 @@ export default function PixelCalendar() {
       </div>
 
       <div className="flex items-center gap-2 text-xs text-ink-soft">
-        <span className="inline-block h-2 w-2 border border-pixel-ink bg-pixel-gold" />
+        <span className="inline-block h-2 w-2 border border-ink bg-pixel-gold dark:border-white" />
         Today
-        <span className="ml-auto pixel-font text-[14px] text-pixel-ink">
+        <span className="ml-auto pixel-font text-[14px] text-ink-soft">
           {daysInMonth} DAYS
         </span>
       </div>

@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bold, Italic, Palette, Smile, Underline } from "lucide-react";
+import {
+  Bold,
+  ChevronDown,
+  Italic,
+  Palette,
+  Smile,
+  Underline,
+} from "lucide-react";
 import RichText from "@/components/RichText";
 import { AppleEmojiGlyph } from "@/components/AppleEmoji";
 
@@ -60,6 +67,7 @@ const FONT_KEY_BY_FAMILY = Object.fromEntries(
     key,
   ]),
 );
+const FONT_OPTION_VALUES = new Set(FONT_OPTIONS.map((option) => option.value));
 
 type FormatKind = "bold" | "italic" | "underline";
 type FormatState = Record<FormatKind, boolean>;
@@ -294,8 +302,11 @@ export default function RichTextEditor({
       const fontName = document.queryCommandValue("fontName");
       const queriedFontKey = fontKeyFromFamily(fontName || "");
       setActiveFont(
-        (!range || range.collapsed ? "" : queriedFontKey) ||
+        (FONT_OPTION_VALUES.has(queriedFontKey || "")
+          ? (!range || range.collapsed ? "" : queriedFontKey)
+          : "") ||
           fontKeyAtSelection() ||
+          (range && range.collapsed ? activeFont : "") ||
           "",
       );
     } catch {
@@ -321,7 +332,7 @@ export default function RichTextEditor({
         element instanceof HTMLElement ? element.dataset.fontKey || "" : "";
       const matchedKey =
         key || fontKeyFromFamily(face || family || "");
-      if (matchedKey) {
+      if (matchedKey && FONT_OPTION_VALUES.has(matchedKey)) {
         return matchedKey;
       }
       element = element.parentElement;
@@ -346,7 +357,7 @@ export default function RichTextEditor({
           : "";
       const matchedKey =
         key || fontKeyFromFamily(face || family || "");
-      if (matchedKey) {
+      if (matchedKey && FONT_OPTION_VALUES.has(matchedKey)) {
         return matchedKey;
       }
       focusElement = focusElement.parentElement;
@@ -568,27 +579,30 @@ export default function RichTextEditor({
           <Underline className="h-3.5 w-3.5" />
         </button>
         <span className="mx-1 hidden h-5 w-px bg-white/50 sm:block dark:bg-white/15" />
-        <select
-          value={activeFont}
-          onChange={(event) => {
-            const next = event.target.value;
-            if (next) {
-              applyFont(next);
-            }
-          }}
-          className="h-8 rounded-full border border-white/60 bg-white/70 px-3 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
-          aria-label="选择字体"
-        >
-          {FONT_OPTIONS.map((option) => (
-            <option
-              key={option.value}
-              value={option.value}
-              className="bg-white text-ink dark:bg-[#1d1d1f] dark:text-white"
-            >
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <span className="relative">
+          <select
+            value={activeFont}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (next) {
+                applyFont(next);
+              }
+            }}
+            className="h-8 appearance-none rounded-full border border-white/60 bg-white/70 pl-3 pr-8 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
+            aria-label="选择字体"
+          >
+            {FONT_OPTIONS.map((option) => (
+              <option
+                key={option.value}
+                value={option.value}
+                className="bg-white text-ink dark:bg-[#1d1d1f] dark:text-white"
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+        </span>
         <span className="flex flex-wrap items-center gap-1 rounded-full border border-white/60 bg-white/70 px-2 py-1 text-xs text-ink-soft backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
           <Palette className="h-3.5 w-3.5" />
           {COLOR_SWATCHES.map((swatch) => (

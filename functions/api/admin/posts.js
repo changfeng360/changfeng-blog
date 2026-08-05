@@ -197,6 +197,10 @@ export async function onRequestPost(context) {
       await savePosts(context.env, posts);
       return json({ ok: true, slug, path: `${POSTS_PATH}/${slug}.mdx`, storage: "kv" });
     }
+    return json(
+      { error: "BLOG_KV is not configured; bind Cloudflare KV to enable saving" },
+      503,
+    );
 
     const filePath = `${POSTS_PATH}/${slug}.mdx`;
     try {

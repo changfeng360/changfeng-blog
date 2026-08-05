@@ -37,7 +37,7 @@
 
 1. 打开 Cloudflare Dashboard > Workers & Pages > KV，创建一个命名空间。
 2. 进入 Pages 项目 > Settings > Functions > KV namespace bindings。
-3. 变量名填 `BLOG_KV`，绑定刚创建的 KV 命名空间。
+3. 变量名填 `BLOG_KV` 或 `KV_BINDING`，绑定刚创建的 KV 命名空间。
 4. 重新部署一次。
 
 ### 迁移说明
@@ -45,8 +45,9 @@
 - 第一次读取留言或文章时，如果 KV 还没有数据，会尝试从 GitHub 仓库自动同步一份作为初始数据。
 - 同步后，之后的留言、文章、项目、友链、个人简介、站点样式都会直接写入 KV。
 - `GITHUB_TOKEN` 仅在 KV 为空、需要首次迁移时使用；迁移完成后可以保留，也可以不再依赖它。
+- 如果尚未绑定 Cloudflare KV，后台保存会返回未配置错误，不会再静默写回 GitHub。
 
-本地调试可先修改 `wrangler.toml` 中的 KV namespace id，再通过 `wrangler pages dev` 提供 `BLOG_KV` 绑定。
+本地调试可直接使用 `wrangler.toml` 中已填写的 `KV_BINDING` 绑定。
 
 ## 留言板
 

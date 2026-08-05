@@ -158,11 +158,24 @@ h4 {
 }
 
 .dark .pixel-panel {
-  background: #f7f2e7;
+  background: #232428;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.08);
 }
 
 .dark .pixel-btn {
-  background: #f7f2e7;
+  background: #2b2d33;
+  color: #f5f5f7;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .pixel-btn:hover {
+  box-shadow: 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .pixel-btn:active {
+  box-shadow: none;
 }
 
 .reduce-motion *,

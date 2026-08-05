@@ -160,12 +160,8 @@ async function saveMessages(env, messages, message) {
     await writeJson(env, KV_KEYS.guestbook, messages);
     return;
   }
-  const file = await getFile(env);
-  await writeFile(
-    JSON.stringify(messages, null, 2),
-    message,
-    env,
-    file.sha,
+  throw new Error(
+    "BLOG_KV is not configured; bind Cloudflare KV to enable saving",
   );
 }
 

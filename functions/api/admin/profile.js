@@ -210,15 +210,10 @@ export async function onRequestPut(context) {
       await writeJson(context.env, KV_KEYS.profile, profile);
       return json({ ok: true, storage: "kv" });
     }
-    const existing = await getFile(PROFILE_PATH, context.env);
-    await writeFile(
-      PROFILE_PATH,
-      `${JSON.stringify(profile, null, 2)}\n`,
-      "Update profile via admin",
-      context.env,
-      existing.sha,
+    return json(
+      { error: "BLOG_KV is not configured; bind Cloudflare KV to enable saving" },
+      503,
     );
-    return json({ ok: true });
   } catch (error) {
     return json({ error: error.message }, 500);
   }

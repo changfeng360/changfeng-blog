@@ -8,26 +8,30 @@ export const KV_KEYS = {
 };
 
 export function kvAvailable(env) {
-  return Boolean(env.BLOG_KV);
+  return Boolean(env.BLOG_KV || env.KV_BINDING);
+}
+
+function kvNamespace(env) {
+  return env.BLOG_KV || env.KV_BINDING;
 }
 
 export async function readJson(env, key) {
   if (!kvAvailable(env)) {
     return null;
   }
-  return env.BLOG_KV.get(key, "json");
+  return kvNamespace(env).get(key, "json");
 }
 
 export async function writeJson(env, key, value) {
   if (!kvAvailable(env)) {
     throw new Error("BLOG_KV is not configured");
   }
-  await env.BLOG_KV.put(key, JSON.stringify(value));
+  await kvNamespace(env).put(key, JSON.stringify(value));
   return value;
 }
 
 export async function removeKey(env, key) {
   if (kvAvailable(env)) {
-    await env.BLOG_KV.delete(key);
+    await kvNamespace(env).delete(key);
   }
 }

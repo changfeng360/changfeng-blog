@@ -239,6 +239,10 @@ export async function onRequestPut(context) {
       await savePosts(context.env, posts);
       return json({ ok: true, storage: "kv" });
     }
+    return json(
+      { error: "BLOG_KV is not configured; bind Cloudflare KV to enable saving" },
+      503,
+    );
 
     const post = await findPost(slug, context.env);
     if (!post) {
@@ -278,6 +282,10 @@ export async function onRequestDelete(context) {
       await savePosts(context.env, next);
       return json({ ok: true, storage: "kv" });
     }
+    return json(
+      { error: "BLOG_KV is not configured; bind Cloudflare KV to enable saving" },
+      503,
+    );
     const post = await findPost(slug, context.env);
     if (!post) {
       return json({ error: "Post not found" }, 404);

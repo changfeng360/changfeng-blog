@@ -2,5 +2,6 @@ name = "changfeng-blog"
 compatibility_date = "2026-08-05"
 pages_build_output_dir = "out"
 
-# 请在 Cloudflare Pages 项目 Settings > Functions > KV namespace bindings
-# 中创建并绑定名为 BLOG_KV 的命名空间。不要在这里写入占位 ID。
+kv_namespaces = [
+  { binding = "KV_BINDING", id = "df2deda769bb4b0c80687c2a8a9a6ea7" }
+]
