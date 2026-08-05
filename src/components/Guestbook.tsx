@@ -226,6 +226,18 @@ export default function Guestbook() {
     }
   }
 
+  function openReply(messageId: string) {
+    setError("");
+    setReplyTarget(messageId);
+  }
+
+  function closeReply() {
+    setReplyTarget(null);
+    setReplyNickname("");
+    setReplyContent("");
+    setError("");
+  }
+
   return (
     <section className="mt-20">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -275,18 +287,7 @@ export default function Guestbook() {
               message={message}
               isAdmin={isAdmin}
               likedIds={likedIds}
-              replyTarget={replyTarget}
-              replyNickname={replyNickname}
-              replyContent={replyContent}
-              busy={busy}
-              onSetReplyNickname={setReplyNickname}
-              onSetReplyContent={setReplyContent}
-              onToggleReply={() =>
-                setReplyTarget((current) =>
-                  current === message.id ? null : message.id,
-                )
-              }
-              onReply={() => postReply(message.id)}
+              onOpenReply={() => openReply(message.id)}
               onLike={(id, parentId) => like(id, parentId)}
               onDelete={(id, parentId) => adminDelete(id, parentId)}
             />
@@ -345,6 +346,62 @@ export default function Guestbook() {
           </div>
         </div>
       </AdminModal>
+
+      <AdminModal
+        open={replyTarget !== null}
+        title="写回复"
+        onClose={closeReply}
+      >
+        <div className="space-y-4">
+          {isAdmin ? (
+            <span className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+              <ShieldCheck className="h-4 w-4 text-accent-pink" />
+              长风
+            </span>
+          ) : (
+            <input
+              type="text"
+              value={replyNickname}
+              onChange={(event) => setReplyNickname(event.target.value)}
+              placeholder="昵称"
+              maxLength={30}
+              className={inputClass}
+            />
+          )}
+          <RichTextEditor
+            value={replyContent}
+            onChange={setReplyContent}
+            placeholder="写下你的回复..."
+            rows={4}
+            maxLength={1000}
+          />
+          {error ? (
+            <p className="text-sm text-accent-pink">{error}</p>
+          ) : null}
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={closeReply}
+              className="rounded-full border border-white/60 bg-white/60 px-5 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (replyTarget) {
+                  postReply(replyTarget);
+                }
+              }}
+              disabled={busy}
+              className="pixel-btn rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" />
+              {busy ? "Sending" : "回复"}
+            </button>
+          </div>
+        </div>
+      </AdminModal>
     </section>
   );
 }
@@ -353,32 +410,17 @@ function GuestMessageCard({
   message,
   isAdmin,
   likedIds,
-  replyTarget,
-  replyNickname,
-  replyContent,
-  busy,
-  onSetReplyNickname,
-  onSetReplyContent,
-  onToggleReply,
-  onReply,
+  onOpenReply,
   onLike,
   onDelete,
 }: {
   message: GuestMessage;
   isAdmin: boolean;
   likedIds: string[];
-  replyTarget: string | null;
-  replyNickname: string;
-  replyContent: string;
-  busy: boolean;
-  onSetReplyNickname: (value: string) => void;
-  onSetReplyContent: (value: string) => void;
-  onToggleReply: () => void;
-  onReply: () => void;
+  onOpenReply: () => void;
   onLike: (id: string, parentId?: string) => void;
   onDelete: (id: string, parentId?: string) => void;
 }) {
-  const replyOpen = replyTarget === message.id;
   const messageLiked = likedIds.includes(message.id);
 
   return (
@@ -441,51 +483,13 @@ function GuestMessageCard({
         </button>
         <button
           type="button"
-          onClick={onToggleReply}
+          onClick={onOpenReply}
           className="chip transition-transform duration-150 ease-out active:scale-95 hover:bg-white"
         >
           <Reply className="h-3.5 w-3.5" />
           评论
         </button>
       </div>
-
-      {replyOpen ? (
-        <div className="mt-4 rounded-3xl border border-white/60 bg-white/40 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-          <div className="grid gap-3 sm:grid-cols-[180px_1fr_auto]">
-            {!isAdmin ? (
-              <input
-                type="text"
-                value={replyNickname}
-                onChange={(event) => onSetReplyNickname(event.target.value)}
-                placeholder="昵称"
-                maxLength={30}
-                className={inputClass}
-              />
-            ) : (
-              <span className="flex items-center gap-2 px-2 text-sm font-medium text-ink">
-                <ShieldCheck className="h-4 w-4 text-accent-pink" />
-                长风
-              </span>
-            )}
-            <RichTextEditor
-              value={replyContent}
-              onChange={onSetReplyContent}
-              placeholder="写下你的评论..."
-              rows={2}
-              maxLength={1000}
-            />
-            <button
-              type="button"
-              onClick={onReply}
-              disabled={busy}
-              className="pixel-btn self-start rounded-full px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Send className="h-3.5 w-3.5" />
-              {busy ? "Sending" : "回复"}
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {message.replies && message.replies.length > 0 ? (
         <div className="mt-5 space-y-3 border-l-2 border-white/50 pl-4 dark:border-white/15">
