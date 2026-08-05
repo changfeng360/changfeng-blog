@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ImagePlus,
   MessageSquare,
   Reply,
   Send,
   ShieldCheck,
   ThumbsUp,
   Trash2,
+  X,
 } from "lucide-react";
 import { useAdmin } from "@/components/admin/AdminContext";
 import RichText from "@/components/RichText";
@@ -18,6 +20,8 @@ type GuestReply = {
   id: string;
   nickname: string;
   content: string;
+  avatarUrl?: string;
+  images?: string[];
   isAuthor: boolean;
   likes: number;
   createdAt: string;
@@ -31,6 +35,8 @@ const inputClass =
   "w-full rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm text-ink outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-ink-faint focus:border-accent-blue/60 dark:border-white/10 dark:bg-white/10 dark:text-white";
 
 const LIKE_STORAGE_KEY = "changfeng-guest-liked";
+const MAX_UPLOAD_IMAGES = 2;
+const MAX_IMAGE_DATA_LENGTH = 260000;
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -50,6 +56,81 @@ function readLikedIds(): string[] {
   }
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("图片读取失败"));
+    image.src = src;
+  });
+}
+
+async function compressImage(file: File): Promise<string> {
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("图片不能超过 15MB");
+  }
+  const source = await readFileAsDataUrl(file);
+  const image = await loadImage(source);
+  const maxEdge = 1000;
+  const scale = Math.min(
+    1,
+    maxEdge / Math.max(image.naturalWidth, image.naturalHeight),
+  );
+  let width = Math.max(1, Math.round(image.naturalWidth * scale));
+  let height = Math.max(1, Math.round(image.naturalHeight * scale));
+  let canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  let context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("图片处理失败");
+  }
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  let quality = 0.82;
+  let output = canvas.toDataURL("image/webp", quality);
+  if (!output.startsWith("data:image/webp")) {
+    output = canvas.toDataURL("image/jpeg", quality);
+  }
+  while (output.length > MAX_IMAGE_DATA_LENGTH && quality > 0.35) {
+    quality -= 0.08;
+    output = canvas.toDataURL("image/webp", quality);
+    if (!output.startsWith("data:image/webp")) {
+      output = canvas.toDataURL("image/jpeg", quality);
+    }
+  }
+  if (output.length > MAX_IMAGE_DATA_LENGTH) {
+    const shrink = Math.sqrt(MAX_IMAGE_DATA_LENGTH / output.length);
+    width = Math.max(1, Math.round(width * shrink));
+    height = Math.max(1, Math.round(height * shrink));
+    canvas.width = width;
+    canvas.height = height;
+    context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("图片处理失败");
+    }
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    output = canvas.toDataURL("image/jpeg", 0.72);
+  }
+  if (output.length > MAX_IMAGE_DATA_LENGTH) {
+    throw new Error("图片压缩后仍然过大，请换一张试试");
+  }
+  return output;
+}
+
 export default function Guestbook() {
   const { isAdmin, token } = useAdmin();
   const [messages, setMessages] = useState<GuestMessage[]>([]);
@@ -64,6 +145,8 @@ export default function Guestbook() {
   const [replyNickname, setReplyNickname] = useState("");
   const [replyEmail, setReplyEmail] = useState("");
   const [replyContent, setReplyContent] = useState("");
+  const [draftImages, setDraftImages] = useState<string[]>([]);
+  const [replyImages, setReplyImages] = useState<string[]>([]);
   const [likedIds, setLikedIds] = useState<string[]>([]);
 
   async function loadMessages() {
@@ -98,7 +181,7 @@ export default function Guestbook() {
       setError("请输入有效的邮箱");
       return;
     }
-    if (!content.trim()) {
+    if (!content.trim() && draftImages.length === 0) {
       setError("请输入留言内容");
       return;
     }
@@ -116,6 +199,7 @@ export default function Guestbook() {
           nickname,
           email,
           content,
+          images: draftImages,
         }),
       });
       const data = await response.json();
@@ -126,6 +210,7 @@ export default function Guestbook() {
       setNickname("");
       setEmail("");
       setContent("");
+      setDraftImages([]);
       setModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发表失败");
@@ -146,7 +231,7 @@ export default function Guestbook() {
       setError("请输入有效的邮箱");
       return;
     }
-    if (!replyContent.trim()) {
+    if (!replyContent.trim() && replyImages.length === 0) {
       setError("请输入回复内容");
       return;
     }
@@ -165,6 +250,7 @@ export default function Guestbook() {
           nickname: isAdmin ? "长风" : replyNickname,
           email: replyEmail,
           content: replyContent,
+          images: replyImages,
         }),
       });
       const data = await response.json();
@@ -176,6 +262,7 @@ export default function Guestbook() {
       setReplyNickname("");
       setReplyEmail("");
       setReplyContent("");
+      setReplyImages([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "回复失败");
     } finally {
@@ -250,6 +337,7 @@ export default function Guestbook() {
     setReplyNickname("");
     setReplyEmail("");
     setReplyContent("");
+    setReplyImages([]);
     setError("");
   }
 
@@ -313,7 +401,10 @@ export default function Guestbook() {
       <AdminModal
         open={modalOpen}
         title="写留言"
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setDraftImages([]);
+          setModalOpen(false);
+        }}
       >
         <div className="space-y-4">
           {isAdmin ? (
@@ -348,13 +439,21 @@ export default function Guestbook() {
             rows={6}
             maxLength={1000}
           />
+          <GuestImageUploader
+            images={draftImages}
+            onChange={setDraftImages}
+            onError={setError}
+          />
           {error ? (
             <p className="text-sm text-accent-pink">{error}</p>
           ) : null}
           <div className="flex flex-wrap justify-end gap-2 pt-1">
             <button
               type="button"
-              onClick={() => setModalOpen(false)}
+              onClick={() => {
+                setDraftImages([]);
+                setModalOpen(false);
+              }}
               className="rounded-full border border-white/60 bg-white/60 px-5 py-3 text-sm font-medium text-ink backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
             >
               取消
@@ -410,6 +509,11 @@ export default function Guestbook() {
             rows={4}
             maxLength={1000}
           />
+          <GuestImageUploader
+            images={replyImages}
+            onChange={setReplyImages}
+            onError={setError}
+          />
           {error ? (
             <p className="text-sm text-accent-pink">{error}</p>
           ) : null}
@@ -441,6 +545,144 @@ export default function Guestbook() {
   );
 }
 
+function GuestImageUploader({
+  images,
+  onChange,
+  onError,
+}: {
+  images: string[];
+  onChange: (images: string[]) => void;
+  onError: (message: string) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files) {
+      return;
+    }
+    onError("");
+    const incoming = Array.from(files);
+    if (images.length + incoming.length > MAX_UPLOAD_IMAGES) {
+      onError("最多上传 2 张图片");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+    const next = [...images];
+    for (const file of incoming) {
+      try {
+        next.push(await compressImage(file));
+      } catch (err) {
+        onError(err instanceof Error ? err.message : "图片处理失败");
+      }
+    }
+    onChange(next);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="chip transition-transform duration-150 ease-out hover:bg-white active:scale-95"
+        title="添加图片"
+      >
+        <ImagePlus className="h-3.5 w-3.5" />
+        添加图片
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => handleFiles(event.target.files)}
+      />
+      {images.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {images.map((src, index) => (
+            <div
+              key={`${src.slice(0, 32)}-${index}`}
+              className="relative"
+            >
+              <img
+                src={src}
+                alt=""
+                className="h-16 w-16 rounded-2xl border border-white/60 bg-white/50 object-cover shadow-apple-sm dark:border-white/10"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(images.filter((_, imageIndex) => imageIndex !== index))
+                }
+                className="icon-button absolute -right-1.5 -top-1.5 !h-6 !w-6"
+                aria-label="移除图片"
+                title="移除图片"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Avatar({
+  nickname,
+  avatarUrl,
+  className = "",
+}: {
+  nickname: string;
+  avatarUrl?: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white/80 font-mono text-sm font-bold text-accent-blue shadow-apple-sm dark:border-white/10 dark:bg-white/20 ${className}`}
+    >
+      <span>{nickname.slice(0, 1).toUpperCase()}</span>
+      {avatarUrl && !failed ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          onError={() => setFailed(true)}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : null}
+    </span>
+  );
+}
+
+function GuestImages({ images }: { images?: string[] }) {
+  if (!images || images.length === 0) {
+    return null;
+  }
+  return (
+    <div
+      className={`mt-3 grid gap-2 ${
+        images.length > 1 ? "grid-cols-2" : "grid-cols-1"
+      }`}
+    >
+      {images.map((src, index) => (
+        <img
+          key={`${src.slice(0, 32)}-${index}`}
+          src={src}
+          alt=""
+          loading="lazy"
+          className="max-h-80 w-full rounded-2xl border border-white/50 bg-white/40 object-cover dark:border-white/10 dark:bg-white/10"
+        />
+      ))}
+    </div>
+  );
+}
+
 function GuestMessageCard({
   message,
   isAdmin,
@@ -462,9 +704,10 @@ function GuestMessageCard({
     <article className="rounded-4xl border border-white/60 bg-white/45 p-5 shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/80 font-mono text-sm font-bold text-accent-blue shadow-apple-sm">
-            {message.nickname.slice(0, 1).toUpperCase()}
-          </span>
+          <Avatar
+            nickname={message.nickname}
+            avatarUrl={message.avatarUrl}
+          />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-ink">
@@ -497,6 +740,7 @@ function GuestMessageCard({
         content={message.content}
         className="mt-4 break-words text-sm leading-relaxed text-ink"
       />
+      <GuestImages images={message.images} />
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button
@@ -535,6 +779,11 @@ function GuestMessageCard({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <Avatar
+                    nickname={reply.nickname}
+                    avatarUrl={reply.avatarUrl}
+                    className="!h-8 !w-8 !text-xs"
+                  />
                   <span className="text-sm font-semibold text-ink">
                     {reply.nickname}
                   </span>
@@ -562,6 +811,7 @@ function GuestMessageCard({
                 content={reply.content}
                 className="mt-2 break-words text-sm leading-relaxed text-ink"
               />
+              <GuestImages images={reply.images} />
               <button
                 type="button"
                 onClick={() => onLike(reply.id, message.id)}

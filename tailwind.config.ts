@@ -40,6 +40,9 @@ const config: Config = {
           "Segoe UI",
           "PingFang SC",
           "Microsoft YaHei",
+          "Apple Color Emoji",
+          "Segoe UI Emoji",
+          "Noto Color Emoji",
           "sans-serif",
         ],
         mono: [

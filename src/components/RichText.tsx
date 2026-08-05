@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import AppleEmojiText from "@/components/AppleEmoji";
 
 const FONT_MAP: Record<string, string> = {
   system:
@@ -100,7 +101,7 @@ function renderInlineChunk(
   let key = 0;
 
   function formatText(text: string, formats: InlineFormat[]): ReactNode {
-    let node: ReactNode = <Fragment key={key++}>{text}</Fragment>;
+    let node: ReactNode = <AppleEmojiText key={key++} text={text} />;
     for (let index = formats.length - 1; index >= 0; index -= 1) {
       const format = formats[index];
       const itemKey = key++;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bold, Italic, Palette, Underline } from "lucide-react";
+import { Bold, Italic, Palette, Smile, Underline } from "lucide-react";
 import RichText from "@/components/RichText";
+import { AppleEmojiGlyph } from "@/components/AppleEmoji";
 
 const FONT_OPTIONS = [
   { value: "", label: "默认字体" },
@@ -26,6 +27,13 @@ const COLOR_SWATCHES = [
   "#6ed3b6",
   "#86868b",
   "#1d1d1f",
+];
+
+const EMOJIS = [
+  "😀", "😁", "😂", "🤣", "😊", "😍", "🥰", "😘", "😜", "🤪", "😎", "🥳",
+  "😅", "😭", "😇", "😴", "👍", "👎", "👏", "🙏", "💪", "🤝", "✌️", "🤞",
+  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💖", "✨", "🎉", "🔥", "⭐",
+  "🍎", "🍊", "🍓", "☕", "🍜", "🎧", "📷", "💡", "🚀", "🌸", "🌈", "🐱",
 ];
 
 const FONT_MAP: Record<string, string> = {
@@ -201,6 +209,7 @@ export default function RichTextEditor({
   });
   const [activeColor, setActiveColor] = useState("");
   const [activeFont, setActiveFont] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [placeholderVisible, setPlaceholderVisible] = useState(!value.trim());
 
   function syncEditorHtml(raw: string) {
@@ -310,6 +319,16 @@ export default function RichTextEditor({
     setActiveFont(key);
   }
 
+  function insertEmoji(emoji: string) {
+    restoreSelection();
+    const inserted = document.execCommand("insertText", false, emoji);
+    if (!inserted) {
+      document.execCommand("insertHTML", false, emoji);
+    }
+    saveSelection();
+    commitFromEditor();
+  }
+
   useEffect(() => {
     if (value === lastEmittedRef.current) {
       setPlaceholderVisible(!value.trim());
@@ -406,6 +425,34 @@ export default function RichTextEditor({
             />
           ))}
         </span>
+        <button
+          type="button"
+          onClick={() => setEmojiOpen((open) => !open)}
+          aria-pressed={emojiOpen}
+          className={`icon-button !h-8 !w-8 ${
+            emojiOpen ? "!bg-pixel-slate !text-white" : ""
+          }`}
+          title="表情"
+          aria-label="表情"
+        >
+          <Smile className="h-3.5 w-3.5" />
+        </button>
+        {emojiOpen ? (
+          <div className="flex w-full flex-wrap items-center gap-1 border-t border-white/50 bg-white/35 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+            {EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="apple-emoji flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-xl transition-transform duration-100 ease-out hover:border-white/50 hover:bg-white/60 active:scale-90 dark:hover:bg-white/15"
+                aria-label={`插入表情 ${emoji}`}
+                title={emoji}
+              >
+                <AppleEmojiGlyph emoji={emoji} />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="relative">

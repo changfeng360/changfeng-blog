@@ -29,6 +29,13 @@
 
 未配置邮件变量时，留言和回复仍会正常显示在网页上，只是不会发送邮件。
 
+## 留言板
+
+- 访客留言和回复需要填写邮箱，用于接收博主回复邮件。
+- 新留言和访客回复会通知 `RESEND_TO_EMAIL` 或 `OWNER_EMAIL`。
+- 留言头像使用 Cravatar 邮箱头像，失败时自动回退到昵称首字母。
+- 访客可以上传最多 2 张图片，图片会在浏览器端压缩后随留言一起保存到 `content/comments.json`，不需要额外配置对象存储。
+
 ## 使用
 
 1. 部署后访问 `https://你的域名/admin`。
@@ -56,3 +63,7 @@ pnpm dlx wrangler pages dev out
 ```
 
 本地调试时可通过 `.dev.vars` 或 Wrangler 环境变量提供 `ADMIN_TOKEN`、`GITHUB_TOKEN`。
+
+## Apple Emoji
+
+网站已内置 Apple Emoji：`pnpm install` 时会从 `emoji-datasource` 提取一张苹果表情精灵图和坐标映射到 `public/emoji/`，留言编辑器和留言内容会自动显示苹果风格表情，不需要手动安装字体。
