@@ -34,7 +34,7 @@ type Token =
   | { type: "toggle"; format: InlineFormat };
 
 const TOKEN_RE =
-  /(\[font=([a-z0-9_-]+)\]|\[\/font\]|\[color=([#a-zA-Z0-9]{3,20})\]|\[\/color\]|\*\*|\*|__)/g;
+  /(\[b\]|\[\/b\]|\[i\]|\[\/i\]|\[u\]|\[\/u\]|\[font=([a-z0-9_-]+)\]|\[\/font\]|\[color=([#a-zA-Z0-9]{3,20})\]|\[\/color\]|\*\*|\*|__)/g;
 
 function tokenize(value: string): Token[] {
   const tokens: Token[] = [];
@@ -47,7 +47,19 @@ function tokenize(value: string): Token[] {
       tokens.push({ type: "text", text: value.slice(last, match.index) });
     }
     const raw = match[0];
-    if (raw.startsWith("[font=")) {
+    if (raw === "[b]") {
+      tokens.push({ type: "open", format: { kind: "bold" } });
+    } else if (raw === "[/b]") {
+      tokens.push({ type: "close", format: { kind: "bold" } });
+    } else if (raw === "[i]") {
+      tokens.push({ type: "open", format: { kind: "italic" } });
+    } else if (raw === "[/i]") {
+      tokens.push({ type: "close", format: { kind: "italic" } });
+    } else if (raw === "[u]") {
+      tokens.push({ type: "open", format: { kind: "underline" } });
+    } else if (raw === "[/u]") {
+      tokens.push({ type: "close", format: { kind: "underline" } });
+    } else if (raw.startsWith("[font=")) {
       tokens.push({
         type: "open",
         format: { kind: "font", value: match[2] },

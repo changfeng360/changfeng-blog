@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bold, Italic, Palette, Underline } from "lucide-react";
 import RichText from "@/components/RichText";
 
@@ -28,6 +28,14 @@ const COLOR_SWATCHES = [
   "#1d1d1f",
 ];
 
+type FormatKind = "bold" | "italic" | "underline";
+
+const FORMAT_TAGS: Record<FormatKind, [string, string]> = {
+  bold: ["[b]", "[/b]"],
+  italic: ["[i]", "[/i]"],
+  underline: ["[u]", "[/u]"],
+};
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -46,6 +54,13 @@ export default function RichTextEditor({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
   const [font, setFont] = useState("");
+  const [draft, setDraft] = useState(value);
+  const [activeFormats, setActiveFormats] = useState<Record<FormatKind, boolean>>({
+    bold: false,
+    italic: false,
+    underline: false,
+  });
+  const prevValueRef = useRef(value);
 
   function syncSelection() {
     const element = textareaRef.current;
@@ -69,20 +84,69 @@ export default function RichTextEditor({
     return selectionRef.current;
   }
 
-  function applyFormat(before: string, after: string) {
+  function commit(nextValue: string) {
+    setDraft(nextValue);
+    prevValueRef.current = nextValue;
+    onChange(nextValue);
+  }
+
+  function applyFormat(kind: FormatKind) {
+    const element = textareaRef.current;
+    const selection = getSelection();
+    const [before, after] = FORMAT_TAGS[kind];
+    if (selection.start === selection.end) {
+      setActiveFormats((current) => ({
+        ...current,
+        [kind]: !current[kind],
+      }));
+      return;
+    }
+    const selected = draft.slice(selection.start, selection.end);
+    const hasTag =
+      draft.slice(selection.start - before.length, selection.start) ===
+        before &&
+      draft.slice(selection.end, selection.end + after.length) === after;
+    const next = hasTag
+      ? draft.slice(0, selection.start - before.length) +
+        selected +
+        draft.slice(selection.end + after.length)
+      : draft.slice(0, selection.start) +
+        before +
+        selected +
+        after +
+        draft.slice(selection.end);
+    commit(next);
+    setActiveFormats((current) => ({
+      ...current,
+      [kind]: !hasTag,
+    }));
+    window.requestAnimationFrame(() => {
+      if (!element) {
+        return;
+      }
+      element.focus();
+      const caret = hasTag
+        ? selection.start - before.length + selected.length
+        : selection.start + before.length + selected.length;
+      element.setSelectionRange(caret, caret);
+      selectionRef.current = { start: caret, end: caret };
+    });
+  }
+
+  function applyMarkup(before: string, after: string) {
     const element = textareaRef.current;
     const selection = getSelection();
     if (selection.start === selection.end) {
       return;
     }
-    const selected = value.slice(selection.start, selection.end);
+    const selected = draft.slice(selection.start, selection.end);
     const next =
-      value.slice(0, selection.start) +
+      draft.slice(0, selection.start) +
       before +
       selected +
       after +
-      value.slice(selection.end);
-    onChange(next);
+      draft.slice(selection.end);
+    commit(next);
     window.requestAnimationFrame(() => {
       if (!element) {
         return;
@@ -94,6 +158,84 @@ export default function RichTextEditor({
     });
   }
 
+  function findInsertion(previous: string, next: string) {
+    let start = 0;
+    const minLength = Math.min(previous.length, next.length);
+    while (start < minLength && previous[start] === next[start]) {
+      start += 1;
+    }
+    let previousEnd = previous.length;
+    let nextEnd = next.length;
+    while (
+      previousEnd > start &&
+      nextEnd > start &&
+      previous[previousEnd - 1] === next[nextEnd - 1]
+    ) {
+      previousEnd -= 1;
+      nextEnd -= 1;
+    }
+    const inserted = next.slice(start, nextEnd);
+    if (!inserted) {
+      return null;
+    }
+    return { start, inserted };
+  }
+
+  function handleTextChange(nextValue: string) {
+    const previous = prevValueRef.current;
+    const insertion = findInsertion(previous, nextValue);
+    const active = (Object.keys(activeFormats) as FormatKind[]).filter(
+      (kind) => activeFormats[kind],
+    );
+
+    if (
+      insertion &&
+      !insertion.inserted.includes("\n") &&
+      active.length > 0
+    ) {
+      let wrapped = insertion.inserted;
+      if (active.includes("bold")) {
+        wrapped = `[b]${wrapped}[/b]`;
+      }
+      if (active.includes("italic")) {
+        wrapped = `[i]${wrapped}[/i]`;
+      }
+      if (active.includes("underline")) {
+        wrapped = `[u]${wrapped}[/u]`;
+      }
+      const formatted =
+        nextValue.slice(0, insertion.start) +
+        wrapped +
+        nextValue.slice(insertion.start + insertion.inserted.length);
+      commit(formatted);
+      const caret = insertion.start + wrapped.length;
+      window.requestAnimationFrame(() => {
+        const element = textareaRef.current;
+        if (!element) {
+          return;
+        }
+        element.focus();
+        element.setSelectionRange(caret, caret);
+        selectionRef.current = { start: caret, end: caret };
+      });
+      return;
+    }
+
+    commit(nextValue);
+  }
+
+  useEffect(() => {
+    setDraft(value);
+    prevValueRef.current = value;
+    if (!value.trim()) {
+      setActiveFormats({
+        bold: false,
+        italic: false,
+        underline: false,
+      });
+    }
+  }, [value]);
+
   return (
     <div
       className={`overflow-hidden rounded-2xl border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 ${className}`}
@@ -101,8 +243,11 @@ export default function RichTextEditor({
       <div className="flex flex-wrap items-center gap-1.5 border-b border-white/50 bg-white/35 px-3 py-2 dark:border-white/10 dark:bg-white/5">
         <button
           type="button"
-          onClick={() => applyFormat("**", "**")}
-          className="icon-button !h-8 !w-8"
+          onClick={() => applyFormat("bold")}
+          aria-pressed={activeFormats.bold}
+          className={`icon-button !h-8 !w-8 ${
+            activeFormats.bold ? "!bg-pixel-slate !text-white" : ""
+          }`}
           title="加粗"
           aria-label="加粗"
         >
@@ -110,8 +255,11 @@ export default function RichTextEditor({
         </button>
         <button
           type="button"
-          onClick={() => applyFormat("*", "*")}
-          className="icon-button !h-8 !w-8"
+          onClick={() => applyFormat("italic")}
+          aria-pressed={activeFormats.italic}
+          className={`icon-button !h-8 !w-8 ${
+            activeFormats.italic ? "!bg-pixel-slate !text-white" : ""
+          }`}
           title="斜体"
           aria-label="斜体"
         >
@@ -119,8 +267,11 @@ export default function RichTextEditor({
         </button>
         <button
           type="button"
-          onClick={() => applyFormat("__", "__")}
-          className="icon-button !h-8 !w-8"
+          onClick={() => applyFormat("underline")}
+          aria-pressed={activeFormats.underline}
+          className={`icon-button !h-8 !w-8 ${
+            activeFormats.underline ? "!bg-pixel-slate !text-white" : ""
+          }`}
           title="下划线"
           aria-label="下划线"
         >
@@ -133,7 +284,7 @@ export default function RichTextEditor({
             const next = event.target.value;
             setFont(next);
             if (next) {
-              applyFormat(`[font=${next}]`, "[/font]");
+              applyMarkup(`[font=${next}]`, "[/font]");
             }
           }}
           className="h-8 rounded-full border border-white/60 bg-white/70 px-3 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
@@ -151,7 +302,7 @@ export default function RichTextEditor({
             <button
               key={swatch}
               type="button"
-              onClick={() => applyFormat(`[color=${swatch}]`, "[/color]")}
+              onClick={() => applyMarkup(`[color=${swatch}]`, "[/color]")}
               className="h-5 w-5 rounded-full border border-black/10 shadow-sm transition-transform duration-100 ease-out active:scale-90"
               style={{ backgroundColor: swatch }}
               aria-label={`文字颜色 ${swatch}`}
@@ -162,8 +313,8 @@ export default function RichTextEditor({
       </div>
       <textarea
         ref={textareaRef}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={draft}
+        onChange={(event) => handleTextChange(event.target.value)}
         onSelect={syncSelection}
         onKeyUp={syncSelection}
         onBlur={syncSelection}
@@ -174,9 +325,9 @@ export default function RichTextEditor({
       />
       <div className="border-t border-white/50 bg-white/30 px-4 py-3 dark:border-white/10 dark:bg-white/5">
         <p className="pixel-font mb-2 text-[10px] text-ink-soft">PREVIEW</p>
-        {value.trim() ? (
+        {draft.trim() ? (
           <RichText
-            content={value}
+            content={draft}
             className="max-h-36 overflow-y-auto text-sm leading-relaxed text-ink"
           />
         ) : (
