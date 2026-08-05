@@ -240,6 +240,7 @@ export default function AdminConsole() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [kvActive, setKvActive] = useState<boolean | null>(null);
   const [section, setSection] = useState<SectionKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -370,6 +371,19 @@ export default function AdminConsole() {
     setPosts(items);
   }
 
+  async function checkStorage(authToken: string) {
+    try {
+      const data = (await api(
+        "auth",
+        { method: "POST", body: "{}" },
+        authToken,
+      )) as { kv?: boolean };
+      setKvActive(Boolean(data.kv));
+    } catch {
+      setKvActive(false);
+    }
+  }
+
   async function loadData(authToken: string) {
     const [profileData, projectsData, friendsData, siteData] =
       await Promise.all([
@@ -397,6 +411,7 @@ export default function AdminConsole() {
     setStatus("");
     try {
       await loadData(token);
+      await checkStorage(token);
       window.sessionStorage.setItem("cf-admin-token", token);
       setAuthenticated(true);
     } catch (error) {
@@ -414,7 +429,10 @@ export default function AdminConsole() {
     setToken(savedToken);
     setLoading(true);
     loadData(savedToken)
-      .then(() => setAuthenticated(true))
+      .then(async () => {
+        await checkStorage(savedToken);
+        setAuthenticated(true);
+      })
       .catch(() => window.sessionStorage.removeItem("cf-admin-token"))
       .finally(() => setLoading(false));
   }, []);
@@ -891,8 +909,18 @@ export default function AdminConsole() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="chip hidden text-ink-soft sm:inline-flex">
-                GIT SYNC
+              <span
+                className={`chip hidden sm:inline-flex ${
+                  kvActive === false
+                    ? "text-accent-pink"
+                    : "text-ink-soft"
+                }`}
+              >
+                {kvActive === null
+                  ? "STORAGE ..."
+                  : kvActive
+                    ? "KV ACTIVE"
+                    : "KV MISSING"}
               </span>
               <button
                 type="button"
