@@ -218,9 +218,7 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
   const suppressToolbarSyncRef = useRef(false);
-  const suppressToolbarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const suppressToolbarTimeoutRef = useRef<number | null>(null);
   const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
   const [activeFormats, setActiveFormats] = useState<FormatState>({
