@@ -226,6 +226,7 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
   const suppressToolbarSyncRef = useRef(false);
+  const fontMenuRef = useRef<HTMLSpanElement | null>(null);
   const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
   const [activeFormats, setActiveFormats] = useState<FormatState>({
@@ -236,6 +237,7 @@ export default function RichTextEditor({
   const activeFormatsRef = useRef(activeFormats);
   const [activeColor, setActiveColor] = useState("");
   const [activeFont, setActiveFont] = useState("");
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [placeholderVisible, setPlaceholderVisible] = useState(!value.trim());
 
@@ -591,9 +593,23 @@ export default function RichTextEditor({
     };
   }, []);
 
+  useEffect(() => {
+    if (!fontMenuOpen) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (fontMenuRef.current && target && !fontMenuRef.current.contains(target)) {
+        setFontMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [fontMenuOpen]);
+
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 ${className}`}
+      className={`overflow-visible rounded-2xl border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/10 ${className}`}
     >
       <div className="flex flex-wrap items-center gap-1.5 border-b border-white/50 bg-white/35 px-3 py-2 dark:border-white/10 dark:bg-white/5">
         <button
@@ -639,34 +655,45 @@ export default function RichTextEditor({
           <Underline className="h-3.5 w-3.5" />
         </button>
         <span className="mx-1 hidden h-5 w-px bg-white/50 sm:block dark:bg-white/15" />
-        <span className="relative">
-          <select
-            value={activeFont}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (next) {
-                applyFont(next);
-              }
-            }}
-            className="h-8 appearance-none rounded-full border border-white/60 bg-white/70 pl-3 pr-8 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
+        <span ref={fontMenuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setFontMenuOpen((open) => !open)}
+            onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={(event) => event.preventDefault()}
+            className="flex h-8 items-center gap-2 rounded-full border border-white/60 bg-white/70 pl-3 pr-2 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
             aria-label="选择字体"
-            style={{
-              appearance: "none",
-              WebkitAppearance: "none",
-              borderRadius: "9999px",
-            }}
+            aria-expanded={fontMenuOpen}
           >
-            {FONT_OPTIONS.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                className="bg-white text-ink dark:bg-[#1d1d1f] dark:text-white"
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+            <span className="max-w-[110px] truncate">
+              {FONT_OPTIONS.find((option) => option.value === activeFont)
+                ?.label ?? "默认字体"}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-soft" />
+          </button>
+          {fontMenuOpen ? (
+            <div className="absolute left-0 top-full z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-white/60 bg-white/75 p-1.5 shadow-apple-hover backdrop-blur-2xl dark:border-white/10 dark:bg-[#202126]/85">
+              {FONT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    applyFont(option.value);
+                    setFontMenuOpen(false);
+                  }}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onPointerDown={(event) => event.preventDefault()}
+                  className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-xs transition-colors duration-150 ${
+                    activeFont === option.value
+                      ? "bg-pixel-slate text-white"
+                      : "text-ink hover:bg-white/70 dark:text-white dark:hover:bg-white/10"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </span>
         <span className="flex flex-wrap items-center gap-1 rounded-full border border-white/60 bg-white/70 px-2 py-1 text-xs text-ink-soft backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
           <Palette className="h-3.5 w-3.5" />

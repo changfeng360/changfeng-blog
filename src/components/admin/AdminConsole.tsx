@@ -1909,8 +1909,18 @@ function AdminGuestbookCard({
     <article className="glass rounded-4xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/80 font-mono text-sm font-bold text-accent-blue shadow-apple-sm dark:border-white/10 dark:bg-white/20">
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white/80 font-mono text-sm font-bold text-accent-blue shadow-apple-sm dark:border-white/10 dark:bg-white/20">
             {message.nickname.slice(0, 1).toUpperCase()}
+            {message.avatarUrl ? (
+              <img
+                src={message.avatarUrl}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : null}
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -1988,8 +1998,18 @@ function AdminGuestbookCard({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/80 font-mono text-xs font-bold text-accent-blue dark:border-white/10 dark:bg-white/20">
+                  <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white/80 font-mono text-xs font-bold text-accent-blue dark:border-white/10 dark:bg-white/20">
                     {reply.nickname.slice(0, 1).toUpperCase()}
+                    {reply.avatarUrl ? (
+                      <img
+                        src={reply.avatarUrl}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : null}
                   </span>
                   <span className="text-sm font-semibold text-ink">
                     {reply.nickname}
