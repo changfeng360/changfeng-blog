@@ -369,12 +369,14 @@ function validateImages(value) {
 
 function validateEmail(value) {
   const email = String(value ?? "").trim();
+  if (!email) {
+    return "";
+  }
   if (
-    !email ||
     email.length > 120 ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   ) {
-    throw new Error("请填写有效的邮箱");
+    throw new Error("邮箱格式不正确（选填）");
   }
   return email;
 }
@@ -457,7 +459,7 @@ export async function onRequestPost(context) {
             env,
             env.RESEND_TO_EMAIL || env.OWNER_EMAIL,
             `【长风的博客】新留言：${nickname}`,
-            `昵称：${nickname}\n邮箱：${email}\n图片：${images.length} 张\n内容：\n${content}`,
+            `昵称：${nickname}\n邮箱：${email || "未填写"}\n图片：${images.length} 张\n内容：\n${content}`,
           );
         } catch {
           emailResult = { skipped: true, error: "email_failed" };
@@ -521,7 +523,7 @@ export async function onRequestPost(context) {
             env,
             env.RESEND_TO_EMAIL || env.OWNER_EMAIL,
             `【长风的博客】新回复：${nickname}`,
-            `昵称：${nickname}\n邮箱：${email}\n图片：${images.length} 张\n回复内容：\n${content}`,
+            `昵称：${nickname}\n邮箱：${email || "未填写"}\n图片：${images.length} 张\n回复内容：\n${content}`,
           );
         } catch {
           emailResult = { skipped: true, error: "email_failed" };

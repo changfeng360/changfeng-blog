@@ -356,6 +356,7 @@ export default function RichTextEditor({
         <button
           type="button"
           onClick={() => applyFormat("bold")}
+          onMouseDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.bold}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.bold ? "!bg-pixel-slate !text-white" : ""
@@ -368,6 +369,7 @@ export default function RichTextEditor({
         <button
           type="button"
           onClick={() => applyFormat("italic")}
+          onMouseDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.italic}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.italic ? "!bg-pixel-slate !text-white" : ""
@@ -380,6 +382,7 @@ export default function RichTextEditor({
         <button
           type="button"
           onClick={() => applyFormat("underline")}
+          onMouseDown={(event) => event.preventDefault()}
           aria-pressed={activeFormats.underline}
           className={`icon-button !h-8 !w-8 ${
             activeFormats.underline ? "!bg-pixel-slate !text-white" : ""
@@ -414,6 +417,7 @@ export default function RichTextEditor({
               key={swatch}
               type="button"
               onClick={() => applyColor(swatch)}
+              onMouseDown={(event) => event.preventDefault()}
               className={`h-5 w-5 rounded-full border border-black/10 shadow-sm transition-transform duration-100 ease-out active:scale-90 ${
                 activeColor === swatch
                   ? "scale-110 ring-2 ring-pixel-ink ring-offset-2"
@@ -428,6 +432,7 @@ export default function RichTextEditor({
         <button
           type="button"
           onClick={() => setEmojiOpen((open) => !open)}
+          onMouseDown={(event) => event.preventDefault()}
           aria-pressed={emojiOpen}
           className={`icon-button !h-8 !w-8 ${
             emojiOpen ? "!bg-pixel-slate !text-white" : ""

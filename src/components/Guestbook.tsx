@@ -177,8 +177,12 @@ export default function Guestbook() {
       setError("请输入昵称");
       return;
     }
-    if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("请输入有效的邮箱");
+    if (
+      !isAdmin &&
+      email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ) {
+      setError("邮箱格式不正确（选填）");
       return;
     }
     if (!content.trim() && draftImages.length === 0) {
@@ -227,8 +231,12 @@ export default function Guestbook() {
       setError("请输入昵称");
       return;
     }
-    if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail.trim())) {
-      setError("请输入有效的邮箱");
+    if (
+      !isAdmin &&
+      replyEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail.trim())
+    ) {
+      setError("邮箱格式不正确（选填）");
       return;
     }
     if (!replyContent.trim() && replyImages.length === 0) {
@@ -426,7 +434,7 @@ export default function Guestbook() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="邮箱（用于接收博主回复）"
+                placeholder="邮箱（选填，用于接收博主回复）"
                 maxLength={120}
                 className={inputClass}
               />
@@ -496,7 +504,7 @@ export default function Guestbook() {
                 type="email"
                 value={replyEmail}
                 onChange={(event) => setReplyEmail(event.target.value)}
-                placeholder="邮箱（用于接收博主回复）"
+                placeholder="邮箱（选填，用于接收博主回复）"
                 maxLength={120}
                 className={inputClass}
               />
