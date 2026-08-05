@@ -72,7 +72,7 @@ export default function PixelCalendar() {
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="pixel-font pb-1 text-[7px] text-ink/60"
+              className="pixel-font pb-1 text-[7px] text-ink/60 dark:text-white/60"
             >
               {day}
             </div>
@@ -87,7 +87,7 @@ export default function PixelCalendar() {
                   className={`pixel-font flex h-7 w-7 items-center justify-center text-[14px] ${
                     isToday(day)
                       ? "border-2 border-ink bg-pixel-gold text-pixel-ink shadow-pixel-sm dark:border-white dark:text-pixel-ink"
-                      : "text-ink/80"
+                      : "text-ink/80 dark:text-white/80"
                   }`}
                 >
                   {day}

@@ -295,7 +295,7 @@ export default function RichTextEditor({
         underline: document.queryCommandState("underline"),
       });
       const color = document.queryCommandValue("foreColor");
-      setActiveColor(normalizeHex(color || ""));
+      const queriedColor = normalizeHex(color || "");
       const selection = window.getSelection();
       const range =
         selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
@@ -307,6 +307,12 @@ export default function RichTextEditor({
           : "") ||
           fontKeyAtSelection() ||
           (range && range.collapsed ? activeFont : "") ||
+          "",
+      );
+      setActiveColor(
+        colorAtSelection() ||
+          (range && range.collapsed ? activeColor : "") ||
+          queriedColor ||
           "",
       );
     } catch {
@@ -363,6 +369,59 @@ export default function RichTextEditor({
       focusElement = focusElement.parentElement;
     }
     return "";
+  }
+
+  function colorAtSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return "";
+    }
+    const readColor = (node: Node | null) => {
+      let element =
+        node?.nodeType === Node.ELEMENT_NODE
+          ? (node as HTMLElement)
+          : node?.parentElement ?? null;
+      while (element && element !== editorRef.current) {
+        const value =
+          element.style.color ||
+          (element.tagName === "FONT"
+            ? element.getAttribute("color") || ""
+            : "");
+        if (
+          value &&
+          value.toLowerCase() !== "black" &&
+          value.toLowerCase() !== "rgb(0, 0, 0)"
+        ) {
+          return normalizeHex(value);
+        }
+        element = element.parentElement;
+      }
+      return "";
+    };
+    return readColor(selection.anchorNode) || readColor(selection.focusNode);
+  }
+
+  function markColorAtSelection(swatch: string) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+    let element =
+      selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? (selection.anchorNode as HTMLElement)
+        : selection.anchorNode?.parentElement ?? null;
+    while (element && element !== editorRef.current) {
+      const hasColor =
+        Boolean(element.style.color) ||
+        element.tagName === "FONT" ||
+        Boolean(element.dataset.colorKey);
+      if (hasColor) {
+        element.style.color = swatch;
+        element.setAttribute("data-color-key", swatch);
+        return;
+      }
+      element = element.parentElement;
+    }
   }
 
   function commitFormats(next: FormatState) {
@@ -453,6 +512,7 @@ export default function RichTextEditor({
   function applyColor(swatch: string) {
     suppressToolbarSyncRef.current = true;
     execCommand("foreColor", swatch);
+    markColorAtSelection(swatch);
     reapplyCollapsedFormats();
     setActiveColor(swatch);
   }
@@ -590,6 +650,11 @@ export default function RichTextEditor({
             }}
             className="h-8 appearance-none rounded-full border border-white/60 bg-white/70 pl-3 pr-8 text-xs text-ink outline-none backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
             aria-label="选择字体"
+            style={{
+              appearance: "none",
+              WebkitAppearance: "none",
+              borderRadius: "9999px",
+            }}
           >
             {FONT_OPTIONS.map((option) => (
               <option
