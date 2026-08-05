@@ -50,8 +50,9 @@ const config: Config = {
           "monospace",
         ],
         pixel: [
-          "Press Start 2P",
+          "Fusion Pixel 12px Monospaced SC",
           "Zpix",
+          "Press Start 2P",
           "SF Mono",
           "Cascadia Code",
           "Consolas",

@@ -55,6 +55,11 @@ export default function MusicPlayer() {
   }, [playing]);
 
   useEffect(() => {
+    rotationRef.current = 0;
+    setRotation(0);
+  }, [currentTrack.id]);
+
+  useEffect(() => {
     if (!playlistOpen) {
       return;
     }
@@ -93,7 +98,7 @@ export default function MusicPlayer() {
         aria-label={playing ? "暂停" : "播放"}
       >
         <Image
-          src="/pixels/luv-sic-album.jpg"
+          src={currentTrack.cover}
           alt={`${currentTrack.title} 专辑封面`}
           width={300}
           height={263}

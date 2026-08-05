@@ -2,14 +2,30 @@
 
 import { useRef, useState } from "react";
 import { Bold, Italic, Palette, Underline } from "lucide-react";
+import RichText from "@/components/RichText";
 
 const FONT_OPTIONS = [
   { value: "", label: "默认字体" },
-  { value: "system", label: "系统字体" },
-  { value: "serif", label: "衬线字体" },
-  { value: "mono", label: "等宽字体" },
-  { value: "pixel", label: "像素字体" },
-  { value: "rounded", label: "圆体" },
+  { value: "misans", label: "MiSans 现代黑体" },
+  { value: "wenkai", label: "霞鹜文楷" },
+  { value: "smiley", label: "得意黑" },
+  { value: "pixel", label: "Fusion Pixel" },
+  { value: "maple", label: "Maple Mono" },
+  { value: "serif", label: "系统衬线" },
+  { value: "mono", label: "系统等宽" },
+];
+
+const COLOR_SWATCHES = [
+  "#ff3b30",
+  "#ff9f0a",
+  "#ffd60a",
+  "#30d158",
+  "#0a84ff",
+  "#bf5af2",
+  "#ff375f",
+  "#6ed3b6",
+  "#86868b",
+  "#1d1d1f",
 ];
 
 export default function RichTextEditor({
@@ -29,7 +45,6 @@ export default function RichTextEditor({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
-  const [color, setColor] = useState("#ff3b30");
   const [font, setFont] = useState("");
 
   function syncSelection() {
@@ -130,19 +145,19 @@ export default function RichTextEditor({
             </option>
           ))}
         </select>
-        <span className="flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-2.5 py-1 text-xs text-ink-soft backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+        <span className="flex flex-wrap items-center gap-1 rounded-full border border-white/60 bg-white/70 px-2 py-1 text-xs text-ink-soft backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
           <Palette className="h-3.5 w-3.5" />
-          <input
-            type="color"
-            value={color}
-            onChange={(event) => {
-              const next = event.target.value;
-              setColor(next);
-              applyFormat(`[color=${next}]`, "[/color]");
-            }}
-            className="h-6 w-8 cursor-pointer rounded-md border-0 bg-transparent p-0"
-            aria-label="选择颜色"
-          />
+          {COLOR_SWATCHES.map((swatch) => (
+            <button
+              key={swatch}
+              type="button"
+              onClick={() => applyFormat(`[color=${swatch}]`, "[/color]")}
+              className="h-5 w-5 rounded-full border border-black/10 shadow-sm transition-transform duration-100 ease-out active:scale-90"
+              style={{ backgroundColor: swatch }}
+              aria-label={`文字颜色 ${swatch}`}
+              title={swatch}
+            />
+          ))}
         </span>
       </div>
       <textarea
@@ -157,6 +172,17 @@ export default function RichTextEditor({
         maxLength={maxLength}
         className="w-full resize-y bg-transparent px-4 py-3 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-faint dark:text-white"
       />
+      <div className="border-t border-white/50 bg-white/30 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+        <p className="pixel-font mb-2 text-[10px] text-ink-soft">PREVIEW</p>
+        {value.trim() ? (
+          <RichText
+            content={value}
+            className="max-h-36 overflow-y-auto text-sm leading-relaxed text-ink"
+          />
+        ) : (
+          <p className="text-xs text-ink-faint">预览会显示格式效果</p>
+        )}
+      </div>
     </div>
   );
 }

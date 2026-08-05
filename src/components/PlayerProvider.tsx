@@ -13,6 +13,7 @@ export type PlayerTrack = {
   title: string;
   artist: string;
   src: string;
+  cover: string;
   duration: number;
 };
 
@@ -22,6 +23,7 @@ export const PLAYLIST: PlayerTrack[] = [
     title: "Luv(sic) Part 2",
     artist: "Nujabes feat. Shing02",
     src: "/music/luv-sic-part-2.mp3",
+    cover: "/pixels/luv-sic-album.jpg",
     duration: 270.26,
   },
   {
@@ -29,6 +31,7 @@ export const PLAYLIST: PlayerTrack[] = [
     title: "Sacred Play Secret Place",
     artist: "Matryoshka",
     src: "/music/sacred-play-secret-place.mp3",
+    cover: "/pixels/luv-sic-album.jpg",
     duration: 0,
   },
   {
@@ -36,6 +39,7 @@ export const PLAYLIST: PlayerTrack[] = [
     title: "未命名夏天",
     artist: "木宇ning",
     src: "/music/unnamed-summer-2022.mp3",
+    cover: "/pixels/cover-summer.jpg",
     duration: 0,
   },
   {
@@ -43,6 +47,7 @@ export const PLAYLIST: PlayerTrack[] = [
     title: "Blue Dragon (piano & guitar ver.)",
     artist: "澤野弘之",
     src: "/music/blue-dragon-piano-guitar.mp3",
+    cover: "/pixels/cover-blue-dragon.jpg",
     duration: 0,
   },
 ];
@@ -90,14 +95,14 @@ export function PlayerProvider({
     setPlaying(false);
   };
 
-  const startPlayback = () => {
+  const startPlayback = (startAt = progress) => {
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
     audio.volume = volume / 100;
     if (audio.duration > 0) {
-      audio.currentTime = (progress / 100) * audio.duration;
+      audio.currentTime = (startAt / 100) * audio.duration;
     }
     void audio.play().catch(() => setPlaying(false));
     setPlaying(true);
@@ -123,14 +128,12 @@ export function PlayerProvider({
       audio.src = PLAYLIST[nextIndex].src;
       audio.currentTime = 0;
       audio.volume = volume / 100;
-      if (playing) {
-        void audio.play().catch(() => setPlaying(false));
-      }
     }
 
     setTrackIndex(nextIndex);
     setProgress(0);
     setDuration(0);
+    startPlayback(0);
   };
 
   const nextTrack = () => {

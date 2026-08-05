@@ -1,9 +1,17 @@
 const FONT_MAP: Record<string, string> = {
   system:
     '-apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif',
+  misans:
+    '"MiSans", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
+  wenkai: '"LXGW WenKai", "Kaiti SC", "STKaiti", serif',
+  smiley:
+    '"Smiley Sans Oblique", "Smiley Sans", "PingFang SC", "Microsoft YaHei", sans-serif',
   serif: 'Georgia, "Times New Roman", "Songti SC", serif',
   mono: '"SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace',
-  pixel: '"Press Start 2P", "Zpix", "SF Mono", monospace',
+  pixel:
+    '"Fusion Pixel 12px Monospaced SC", "Zpix", "Press Start 2P", "SF Mono", monospace',
+  maple:
+    '"Maple Mono", "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace',
   rounded:
     '"Arial Rounded MT Bold", "PingFang SC", "Microsoft YaHei", sans-serif',
 };

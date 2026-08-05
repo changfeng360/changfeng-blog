@@ -38,6 +38,32 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" style={siteStyle}>
       <body className="min-h-screen font-sans antialiased">
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Medium.min.css"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/misans@4.1.0/lib/Normal/MiSans-Bold.min.css"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@callmebill/lxgw-wenkai-web@1.522.0/style.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/cn-fontsource-smiley-sans-oblique-regular@1.0.1/font.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-monospaced-sc@5.2.5/400.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@fontsource/maple-mono@5.2.6/400.css"
+        />
         <AdminProvider>
           <SettingsProvider>
             <PlayerProvider>
