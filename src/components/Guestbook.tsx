@@ -21,6 +21,7 @@ type GuestReply = {
   isAuthor: boolean;
   likes: number;
   createdAt: string;
+  canDelete?: boolean;
 };
 
 type GuestMessage = GuestReply & {
@@ -237,8 +238,14 @@ export default function Guestbook() {
 
   async function deleteEntry(id: string, parentId?: string) {
     const visitorToken = deleteTokens[id];
+    const target = parentId
+      ? messages
+          .find((message) => message.id === parentId)
+          ?.replies?.find((reply) => reply.id === id)
+      : messages.find((message) => message.id === id);
+    const canDeleteFromServer = Boolean(target?.canDelete);
     if (
-      (!isAdmin && !visitorToken) ||
+      (!isAdmin && !visitorToken && !canDeleteFromServer) ||
       !window.confirm("确定删除这条留言吗？")
     ) {
       return;
@@ -474,7 +481,8 @@ function GuestMessageCard({
   onDelete: (id: string, parentId?: string) => void;
 }) {
   const messageLiked = likedIds.includes(message.id);
-  const canDeleteMessage = isAdmin || Boolean(deleteTokens[message.id]);
+  const canDeleteMessage =
+    isAdmin || Boolean(deleteTokens[message.id]) || Boolean(message.canDelete);
 
   return (
     <article className="rounded-4xl border border-white/60 bg-white/45 p-5 shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 sm:p-6">
@@ -565,7 +573,9 @@ function GuestMessageCard({
                     {formatTime(reply.createdAt)}
                   </span>
                 </div>
-                {isAdmin || deleteTokens[reply.id] ? (
+                {isAdmin ||
+                deleteTokens[reply.id] ||
+                Boolean(reply.canDelete) ? (
                   <button
                     type="button"
                     onClick={() => onDelete(reply.id, message.id)}

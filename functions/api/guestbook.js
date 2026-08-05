@@ -140,18 +140,24 @@ function createDeleteToken() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 14)}`;
 }
 
-function withoutDeleteToken(item) {
+function withoutPrivateFields(item) {
   if (!item) {
     return item;
   }
-  const { deleteToken, ...rest } = item;
+  const { deleteToken, visitorKey, ...rest } = item;
   return rest;
 }
 
-function sanitizeMessages(messages) {
+function sanitizeMessages(messages, visitorKey, isAdmin) {
+  const decorate = (item) => ({
+    ...withoutPrivateFields(item),
+    canDelete:
+      isAdmin ||
+      Boolean(item.visitorKey && item.visitorKey === visitorKey),
+  });
   return (messages || []).map((message) => ({
-    ...withoutDeleteToken(message),
-    replies: (message.replies || []).map(withoutDeleteToken),
+    ...decorate(message),
+    replies: (message.replies || []).map(decorate),
   }));
 }
 
@@ -191,11 +197,15 @@ function validateContent(value) {
 }
 
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { request, env } = context;
   try {
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
-    return json({ messages: sanitizeMessages(messages) });
+    const visitor = await visitorKey(request);
+    const isAdmin = authorizeAdmin(request, env);
+    return json({
+      messages: sanitizeMessages(messages, visitor, isAdmin),
+    });
   } catch (error) {
     return json({ error: error.message }, 500);
   }
@@ -208,12 +218,14 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
+    const visitor = await visitorKey(request);
 
     if (body.action === "add") {
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
       const content = validateContent(body.content);
       const id = createId();
       const deleteToken = createDeleteToken();
+      const visitor = await visitorKey(request);
       messages.unshift({
         id,
         nickname,
@@ -224,6 +236,7 @@ export async function onRequestPost(context) {
         createdAt: new Date().toISOString(),
         replies: [],
         deleteToken,
+        visitorKey: visitor,
       });
       await writeFile(
         JSON.stringify(messages, null, 2),
@@ -233,7 +246,7 @@ export async function onRequestPost(context) {
       );
       return json({
         ok: true,
-        messages: sanitizeMessages(messages),
+        messages: sanitizeMessages(messages, visitor, isAdmin),
         created: { id, deleteToken },
       });
     }
@@ -248,6 +261,7 @@ export async function onRequestPost(context) {
       parent.replies = parent.replies || [];
       const id = createId();
       const deleteToken = createDeleteToken();
+      const visitor = await visitorKey(request);
       const reply = {
         id,
         nickname,
@@ -257,6 +271,7 @@ export async function onRequestPost(context) {
         likedBy: [],
         createdAt: new Date().toISOString(),
         deleteToken,
+        visitorKey: visitor,
       };
       parent.replies.push(reply);
       await writeFile(
@@ -267,7 +282,7 @@ export async function onRequestPost(context) {
       );
       return json({
         ok: true,
-        messages: sanitizeMessages(messages),
+        messages: sanitizeMessages(messages, visitor, isAdmin),
         created: { id, deleteToken },
       });
     }
@@ -294,7 +309,10 @@ export async function onRequestPost(context) {
         env,
         file.sha,
       );
-      return json({ ok: true, messages: sanitizeMessages(messages) });
+      return json({
+        ok: true,
+        messages: sanitizeMessages(messages, visitor, isAdmin),
+      });
     }
 
     return json({ error: "未知操作" }, 400);
@@ -307,6 +325,7 @@ export async function onRequestDelete(context) {
   const { request, env } = context;
   const isAdmin = authorizeAdmin(request, env);
   const deleteToken = request.headers.get("x-delete-token") || "";
+  const currentVisitorKey = await visitorKey(request);
   try {
     const body = await request.json();
     const file = await getFile(env);
@@ -325,7 +344,9 @@ export async function onRequestDelete(context) {
           return message;
         }
         const allowed =
-          isAdmin || (reply.deleteToken && reply.deleteToken === deleteToken);
+          isAdmin ||
+          (reply.deleteToken && reply.deleteToken === deleteToken) ||
+          (reply.visitorKey && reply.visitorKey === currentVisitorKey);
         if (!allowed) {
           return message;
         }
@@ -342,7 +363,8 @@ export async function onRequestDelete(context) {
       if (message) {
         const allowed =
           isAdmin ||
-          (message.deleteToken && message.deleteToken === deleteToken);
+          (message.deleteToken && message.deleteToken === deleteToken) ||
+          (message.visitorKey && message.visitorKey === currentVisitorKey);
         if (allowed) {
           next = messages.filter((item) => item.id !== body.id);
           removed = true;
@@ -363,7 +385,10 @@ export async function onRequestDelete(context) {
       env,
       file.sha,
     );
-    return json({ ok: true, messages: sanitizeMessages(next) });
+    return json({
+      ok: true,
+      messages: sanitizeMessages(next, currentVisitorKey, isAdmin),
+    });
   } catch (error) {
     return json({ error: error.message }, 400);
   }
