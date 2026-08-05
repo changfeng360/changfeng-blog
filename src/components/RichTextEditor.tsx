@@ -288,11 +288,45 @@ export default function RichTextEditor({
       });
       const color = document.queryCommandValue("foreColor");
       setActiveColor(normalizeHex(color || ""));
+      const selection = window.getSelection();
+      const range =
+        selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
       const fontName = document.queryCommandValue("fontName");
-      setActiveFont(fontKeyFromFamily(fontName || "") || "");
+      const queriedFontKey = fontKeyFromFamily(fontName || "");
+      setActiveFont(
+        (!range || range.collapsed ? "" : queriedFontKey) ||
+          fontKeyAtSelection() ||
+          "",
+      );
     } catch {
       // queryCommand APIs are not available in every browser.
     }
+  }
+
+  function fontKeyAtSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return "";
+    }
+    let element =
+      selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? (selection.anchorNode as HTMLElement)
+        : selection.anchorNode?.parentElement ?? null;
+    while (element && element !== editorRef.current) {
+      const face =
+        element instanceof HTMLElement ? element.getAttribute("face") : null;
+      const family =
+        element instanceof HTMLElement ? element.style.fontFamily : "";
+      const key =
+        element instanceof HTMLElement ? element.dataset.fontKey || "" : "";
+      const matchedKey =
+        key || fontKeyFromFamily(face || family || "");
+      if (matchedKey) {
+        return matchedKey;
+      }
+      element = element.parentElement;
+    }
+    return "";
   }
 
   function commitFormats(next: FormatState) {
