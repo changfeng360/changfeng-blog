@@ -1,29 +1,5 @@
 [
   {
-    "id": "525bacb9-a6fe-43b8-8c54-195a305762ce",
-    "nickname": "111",
-    "content": "[b][font=wenkai]你好[/font][/b]",
-    "email": "3113129562@qq.com",
-    "images": [],
-    "isAuthor": false,
-    "likes": 0,
-    "likedBy": [],
-    "createdAt": "2026-08-05T08:10:51.084Z",
-    "replies": [
-      {
-        "id": "7dc8b665-8782-44e2-b160-f3aa08cd6961",
-        "nickname": "长风",
-        "content": "[i][b]ok[/b][/i]",
-        "email": "",
-        "images": [],
-        "isAuthor": true,
-        "likes": 0,
-        "likedBy": [],
-        "createdAt": "2026-08-05T08:13:16.517Z"
-      }
-    ]
-  },
-  {
     "id": "81a012a9-cf33-4461-8581-665b1fb63822",
     "nickname": "123",
     "content": "[color=#ff3b30]你好～[/color]",
