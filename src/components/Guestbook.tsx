@@ -88,8 +88,12 @@ export default function Guestbook() {
     if (busy) {
       return;
     }
-    if (!content.trim() || (!isAdmin && !nickname.trim())) {
-      setError(isAdmin ? "请填写留言内容" : "请填写昵称和留言内容");
+    if (!isAdmin && !nickname.trim()) {
+      setError("请输入昵称");
+      return;
+    }
+    if (!content.trim()) {
+      setError("请输入留言内容");
       return;
     }
     setBusy(true);
@@ -126,8 +130,12 @@ export default function Guestbook() {
     if (busy) {
       return;
     }
-    if (!replyContent.trim() || (!isAdmin && !replyNickname.trim())) {
-      setError("请填写昵称和回复内容");
+    if (!isAdmin && !replyNickname.trim()) {
+      setError("请输入昵称");
+      return;
+    }
+    if (!replyContent.trim()) {
+      setError("请输入回复内容");
       return;
     }
     setBusy(true);
