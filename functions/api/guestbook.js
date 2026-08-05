@@ -10,7 +10,7 @@ function json(data, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-admin-token",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-token, x-delete-token",
     },
   });
 }
@@ -21,7 +21,7 @@ export function onRequestOptions() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-admin-token",
+      "Access-Control-Allow-Headers": "Content-Type, x-admin-token, x-delete-token",
     },
   });
 }
@@ -133,6 +133,28 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createDeleteToken() {
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+function withoutDeleteToken(item) {
+  if (!item) {
+    return item;
+  }
+  const { deleteToken, ...rest } = item;
+  return rest;
+}
+
+function sanitizeMessages(messages) {
+  return (messages || []).map((message) => ({
+    ...withoutDeleteToken(message),
+    replies: (message.replies || []).map(withoutDeleteToken),
+  }));
+}
+
 async function visitorKey(request) {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const data = new TextEncoder().encode(`changfeng-guest:${ip}`);
@@ -173,7 +195,7 @@ export async function onRequestGet(context) {
   try {
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
-    return json({ messages });
+    return json({ messages: sanitizeMessages(messages) });
   } catch (error) {
     return json({ error: error.message }, 500);
   }
@@ -190,8 +212,10 @@ export async function onRequestPost(context) {
     if (body.action === "add") {
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
       const content = validateContent(body.content);
+      const id = createId();
+      const deleteToken = createDeleteToken();
       messages.unshift({
-        id: createId(),
+        id,
         nickname,
         content,
         isAuthor: isAdmin,
@@ -199,6 +223,7 @@ export async function onRequestPost(context) {
         likedBy: [],
         createdAt: new Date().toISOString(),
         replies: [],
+        deleteToken,
       });
       await writeFile(
         JSON.stringify(messages, null, 2),
@@ -206,7 +231,11 @@ export async function onRequestPost(context) {
         env,
         file.sha,
       );
-      return json({ ok: true, messages });
+      return json({
+        ok: true,
+        messages: sanitizeMessages(messages),
+        created: { id, deleteToken },
+      });
     }
 
     if (body.action === "reply") {
@@ -217,22 +246,30 @@ export async function onRequestPost(context) {
       const nickname = isAdmin ? "长风" : validateNickname(body.nickname);
       const content = validateContent(body.content);
       parent.replies = parent.replies || [];
-      parent.replies.push({
-        id: createId(),
+      const id = createId();
+      const deleteToken = createDeleteToken();
+      const reply = {
+        id,
         nickname,
         content,
         isAuthor: isAdmin,
         likes: 0,
         likedBy: [],
         createdAt: new Date().toISOString(),
-      });
+        deleteToken,
+      };
+      parent.replies.push(reply);
       await writeFile(
         JSON.stringify(messages, null, 2),
         isAdmin ? "博主回复留言" : "新增留言回复",
         env,
         file.sha,
       );
-      return json({ ok: true, messages });
+      return json({
+        ok: true,
+        messages: sanitizeMessages(messages),
+        created: { id, deleteToken },
+      });
     }
 
     if (body.action === "like") {
@@ -257,7 +294,7 @@ export async function onRequestPost(context) {
         env,
         file.sha,
       );
-      return json({ ok: true, messages });
+      return json({ ok: true, messages: sanitizeMessages(messages) });
     }
 
     return json({ error: "未知操作" }, 400);
@@ -268,19 +305,31 @@ export async function onRequestPost(context) {
 
 export async function onRequestDelete(context) {
   const { request, env } = context;
-  if (!authorizeAdmin(request, env)) {
-    return json({ error: "未授权" }, 401);
-  }
+  const isAdmin = authorizeAdmin(request, env);
+  const deleteToken = request.headers.get("x-delete-token") || "";
   try {
     const body = await request.json();
     const file = await getFile(env);
     const messages = JSON.parse(file.content || "[]");
     let next = messages;
+    let removed = false;
     if (body.parentId) {
       next = messages.map((message) => {
         if (message.id !== body.parentId) {
           return message;
         }
+        const reply = (message.replies || []).find(
+          (item) => item.id === body.id,
+        );
+        if (!reply) {
+          return message;
+        }
+        const allowed =
+          isAdmin || (reply.deleteToken && reply.deleteToken === deleteToken);
+        if (!allowed) {
+          return message;
+        }
+        removed = true;
         return {
           ...message,
           replies: (message.replies || []).filter(
@@ -289,7 +338,24 @@ export async function onRequestDelete(context) {
         };
       });
     } else {
-      next = messages.filter((message) => message.id !== body.id);
+      const message = messages.find((item) => item.id === body.id);
+      if (message) {
+        const allowed =
+          isAdmin ||
+          (message.deleteToken && message.deleteToken === deleteToken);
+        if (allowed) {
+          next = messages.filter((item) => item.id !== body.id);
+          removed = true;
+        }
+      }
+    }
+    if (!removed) {
+      return json(
+        {
+          error: isAdmin || deleteToken ? "留言不存在" : "未授权",
+        },
+        isAdmin || deleteToken ? 404 : 401,
+      );
     }
     await writeFile(
       JSON.stringify(next, null, 2),
@@ -297,7 +363,7 @@ export async function onRequestDelete(context) {
       env,
       file.sha,
     );
-    return json({ ok: true, messages: next });
+    return json({ ok: true, messages: sanitizeMessages(next) });
   } catch (error) {
     return json({ error: error.message }, 400);
   }
