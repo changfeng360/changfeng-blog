@@ -326,6 +326,31 @@ export default function RichTextEditor({
       }
       element = element.parentElement;
     }
+
+    let focusElement =
+      selection.focusNode?.nodeType === Node.ELEMENT_NODE
+        ? (selection.focusNode as HTMLElement)
+        : selection.focusNode?.parentElement ?? null;
+    while (focusElement && focusElement !== editorRef.current) {
+      const face =
+        focusElement instanceof HTMLElement
+          ? focusElement.getAttribute("face")
+          : null;
+      const family =
+        focusElement instanceof HTMLElement
+          ? focusElement.style.fontFamily
+          : "";
+      const key =
+        focusElement instanceof HTMLElement
+          ? focusElement.dataset.fontKey || ""
+          : "";
+      const matchedKey =
+        key || fontKeyFromFamily(face || family || "");
+      if (matchedKey) {
+        return matchedKey;
+      }
+      focusElement = focusElement.parentElement;
+    }
     return "";
   }
 
@@ -361,6 +386,7 @@ export default function RichTextEditor({
       command === "bold" ||
       command === "italic" ||
       command === "underline" ||
+      command === "fontName" ||
       command === "foreColor"
     ) {
       document.execCommand("styleWithCSS", false, "true");
@@ -423,8 +449,44 @@ export default function RichTextEditor({
   function applyFont(key: string) {
     suppressToolbarSyncRef.current = true;
     execCommand("fontName", FONT_MAP[key] || "inherit");
+    markFontAtSelection(key);
     reapplyCollapsedFormats();
     setActiveFont(key);
+  }
+
+  function markFontAtSelection(key: string) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+    let element =
+      selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? (selection.anchorNode as HTMLElement)
+        : selection.anchorNode?.parentElement ?? null;
+    while (element && element !== editorRef.current) {
+      const hasFont =
+        element.tagName === "FONT" ||
+        Boolean(element.style.fontFamily) ||
+        Boolean(element.dataset.fontKey);
+      if (hasFont) {
+        element.setAttribute("data-font-key", key);
+        element.style.fontFamily = FONT_MAP[key] || "inherit";
+        return;
+      }
+      element = element.parentElement;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) {
+      const span = document.createElement("span");
+      span.setAttribute("data-font-key", key);
+      span.style.fontFamily = FONT_MAP[key] || "inherit";
+      try {
+        range.surroundContents(span);
+      } catch {
+        // Fall back to the browser formatting when wrapping is not possible.
+      }
+    }
   }
 
   function insertEmoji(emoji: string) {
@@ -518,7 +580,11 @@ export default function RichTextEditor({
           aria-label="选择字体"
         >
           {FONT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option
+              key={option.value}
+              value={option.value}
+              className="bg-white text-ink dark:bg-[#1d1d1f] dark:text-white"
+            >
               {option.label}
             </option>
           ))}
