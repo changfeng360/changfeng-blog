@@ -12,8 +12,11 @@ import {
   LogIn,
   LogOut,
   Menu,
+  MessageSquare,
   Pencil,
   Plus,
+  RefreshCw,
+  Reply,
   Save,
   Settings2,
   Trash2,
@@ -22,6 +25,7 @@ import {
 } from "lucide-react";
 import type { Friend, Post, Profile, Project } from "@/data/content";
 import RichText from "@/components/RichText";
+import RichTextEditor from "@/components/RichTextEditor";
 import AdminModal from "./AdminModal";
 import {
   CheckboxField,
@@ -40,6 +44,7 @@ type SectionKey =
   | "posts"
   | "projects"
   | "friends"
+  | "guestbook"
   | "style";
 
 type AdminPost = Post & {
@@ -70,12 +75,29 @@ type FriendModalState = {
   draft: Friend;
 };
 
+type AdminGuestReply = {
+  id: string;
+  nickname: string;
+  content: string;
+  email?: string;
+  avatarUrl?: string;
+  images?: string[];
+  isAuthor: boolean;
+  likes: number;
+  createdAt: string;
+};
+
+type AdminGuestMessage = AdminGuestReply & {
+  replies: AdminGuestReply[];
+};
+
 const sectionMeta: Record<SectionKey, { label: string; eyebrow: string }> = {
   dashboard: { label: "仪表盘", eyebrow: "OVERVIEW" },
   profile: { label: "个人简介", eyebrow: "PROFILE" },
   posts: { label: "文章管理", eyebrow: "POSTS" },
   projects: { label: "项目管理", eyebrow: "PROJECTS" },
   friends: { label: "友链管理", eyebrow: "FRIENDS" },
+  guestbook: { label: "留言管理", eyebrow: "GUESTBOOK" },
   style: { label: "站点样式", eyebrow: "STYLE" },
 };
 
@@ -224,6 +246,15 @@ export default function AdminConsole() {
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [guestbookMessages, setGuestbookMessages] = useState<
+    AdminGuestMessage[]
+  >([]);
+  const [guestbookLoading, setGuestbookLoading] = useState(false);
+  const [guestbookError, setGuestbookError] = useState("");
+  const [guestReplyTarget, setGuestReplyTarget] = useState<{
+    messageId: string;
+  } | null>(null);
+  const [guestReplyContent, setGuestReplyContent] = useState("");
   const [siteDraft, setSiteDraft] = useState<SiteSettings | null>(null);
 
   const [profileModal, setProfileModal] = useState(false);
@@ -252,6 +283,47 @@ export default function AdminConsole() {
       throw new Error(data.error || "Request failed");
     }
     return data;
+  }
+
+  async function loadGuestbook(authToken: string) {
+    setGuestbookLoading(true);
+    setGuestbookError("");
+    try {
+      const response = await fetch("/api/guestbook", {
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": authToken,
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "留言加载失败");
+      }
+      setGuestbookMessages(data.messages || []);
+    } catch (error) {
+      setGuestbookError(
+        error instanceof Error ? error.message : "留言加载失败",
+      );
+      setGuestbookMessages([]);
+    } finally {
+      setGuestbookLoading(false);
+    }
+  }
+
+  async function guestbookApi(options: RequestInit = {}) {
+    const response = await fetch("/api/guestbook", {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-token": token,
+        ...(options.headers || {}),
+      },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "留言请求失败");
+    }
+    return data as { messages: AdminGuestMessage[] };
   }
 
   async function loadPosts(authToken: string) {
@@ -307,6 +379,7 @@ export default function AdminConsole() {
     setProjects(projectsData as Project[]);
     setFriends(friendsData as Friend[]);
     setSiteDraft(siteData as SiteSettings);
+    await loadGuestbook(authToken);
     await loadPosts(authToken);
   }
 
@@ -552,6 +625,61 @@ export default function AdminConsole() {
     }
   }
 
+  async function deleteGuestbookEntry(id: string, parentId?: string) {
+    if (
+      !window.confirm(parentId ? "确定删除这条回复吗？" : "确定删除这条留言吗？")
+    ) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const data = await guestbookApi({
+        method: "DELETE",
+        body: JSON.stringify({ id, parentId }),
+      });
+      setGuestbookMessages(data.messages || []);
+      setStatus("留言已删除");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "删除失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitGuestReply() {
+    if (!guestReplyTarget) {
+      return;
+    }
+    if (!guestReplyContent.trim()) {
+      setStatus("回复内容不能为空");
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const data = await guestbookApi({
+        method: "POST",
+        body: JSON.stringify({
+          action: "reply",
+          parentId: guestReplyTarget.messageId,
+          nickname: "长风",
+          email: "",
+          content: guestReplyContent,
+          images: [],
+        }),
+      });
+      setGuestbookMessages(data.messages || []);
+      setGuestReplyTarget(null);
+      setGuestReplyContent("");
+      setStatus("回复已发布");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "回复失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!authenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center px-5 pb-10 pt-20">
@@ -563,7 +691,7 @@ export default function AdminConsole() {
             {loading ? "正在进入..." : "管理员登录"}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            输入管理员令牌后即可编辑个人简介、文章、项目和友链。
+            输入管理员令牌后即可编辑个人简介、文章、项目、友链和留言。
           </p>
           <input
             type="password"
@@ -614,6 +742,12 @@ export default function AdminConsole() {
       label: "友链",
       icon: Globe2,
       count: friends.length,
+    },
+    {
+      key: "guestbook",
+      label: "留言",
+      icon: MessageSquare,
+      count: guestbookMessages.length,
     },
     { key: "style", label: "站点样式", icon: Settings2 },
   ];
@@ -761,6 +895,7 @@ export default function AdminConsole() {
               posts={posts}
               projects={projects}
               friends={friends}
+              guestbookMessages={guestbookMessages}
               onNavigate={setSection}
             />
           ) : null}
@@ -915,6 +1050,55 @@ export default function AdminConsole() {
                     onDelete={() => deleteFriend(index)}
                   />
                 ))}
+              </div>
+            </section>
+          ) : null}
+
+          {section === "guestbook" ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="留言管理"
+                description="查看、回复或删除访客留言。"
+                action={
+                  <PrimaryButton
+                    icon={<RefreshCw className="h-4 w-4" />}
+                    onClick={() => loadGuestbook(token)}
+                  >
+                    刷新留言
+                  </PrimaryButton>
+                }
+              />
+              {guestbookError ? (
+                <div className="rounded-3xl border border-white/60 bg-white/60 px-4 py-3 text-sm text-accent-pink shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                  {guestbookError}
+                </div>
+              ) : null}
+              <div className="space-y-5">
+                {guestbookMessages.map((message) => (
+                  <AdminGuestbookCard
+                    key={message.id}
+                    message={message}
+                    onReply={(messageId) => {
+                      setGuestReplyTarget({ messageId });
+                      setGuestReplyContent("");
+                    }}
+                    onDelete={(id, parentId) =>
+                      deleteGuestbookEntry(id, parentId)
+                    }
+                  />
+                ))}
+                {!guestbookLoading &&
+                !guestbookError &&
+                guestbookMessages.length === 0 ? (
+                  <div className="glass rounded-4xl p-10 text-center text-sm text-ink-soft">
+                    还没有留言
+                  </div>
+                ) : null}
+                {guestbookLoading ? (
+                  <div className="glass rounded-4xl p-10 text-center text-sm text-ink-soft">
+                    正在加载留言...
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -1392,6 +1576,33 @@ export default function AdminConsole() {
           saving={saving}
         />
       </AdminModal>
+
+      <AdminModal
+        open={Boolean(guestReplyTarget)}
+        title="回复留言"
+        onClose={() => {
+          setGuestReplyTarget(null);
+          setGuestReplyContent("");
+        }}
+      >
+        <div className="space-y-4">
+          <RichTextEditor
+            value={guestReplyContent}
+            onChange={setGuestReplyContent}
+            placeholder="以博主身份回复..."
+            rows={5}
+            maxLength={1000}
+          />
+          <ModalActions
+            onCancel={() => {
+              setGuestReplyTarget(null);
+              setGuestReplyContent("");
+            }}
+            onSave={submitGuestReply}
+            saving={saving}
+          />
+        </div>
+      </AdminModal>
     </div>
   );
 }
@@ -1590,17 +1801,176 @@ function DataCard({
   );
 }
 
+function formatFullTime(value: string) {
+  if (!value) {
+    return "未知时间";
+  }
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function AdminGuestImages({ images }: { images?: string[] }) {
+  if (!images || images.length === 0) {
+    return null;
+  }
+  return (
+    <div className="mt-3 grid max-w-xl gap-2 sm:grid-cols-2">
+      {images.map((src, index) => (
+        <img
+          key={`${src.slice(0, 32)}-${index}`}
+          src={src}
+          alt=""
+          loading="lazy"
+          className="max-h-64 w-full rounded-2xl border border-white/50 bg-white/40 object-cover dark:border-white/10 dark:bg-white/10"
+        />
+      ))}
+    </div>
+  );
+}
+
+function AdminGuestbookCard({
+  message,
+  onReply,
+  onDelete,
+}: {
+  message: AdminGuestMessage;
+  onReply: (messageId: string) => void;
+  onDelete: (id: string, parentId?: string) => void;
+}) {
+  return (
+    <article className="glass rounded-4xl p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/80 font-mono text-sm font-bold text-accent-blue shadow-apple-sm dark:border-white/10 dark:bg-white/20">
+            {message.nickname.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-ink">
+                {message.nickname}
+              </span>
+              {message.isAuthor ? (
+                <span className="chip pixel-font !text-[11px] text-accent-pink">
+                  博主
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-0.5 break-words text-xs text-ink-soft">
+              {formatFullTime(message.createdAt)}
+              {message.email ? ` · ${message.email}` : ""}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={() => onReply(message.id)}
+            className="icon-button !h-8 !w-8"
+            aria-label="回复留言"
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(message.id)}
+            className="icon-button !h-8 !w-8"
+            aria-label="删除留言"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <RichText
+        content={message.content}
+        className="mt-4 break-words text-sm leading-relaxed text-ink"
+      />
+      <AdminGuestImages images={message.images} />
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="chip pixel-font !text-[12px]">
+          {message.likes || 0} 赞
+        </span>
+      </div>
+
+      {message.replies && message.replies.length > 0 ? (
+        <div className="mt-5 space-y-3 border-l-2 border-white/50 pl-4 dark:border-white/15">
+          {message.replies.map((reply) => (
+            <div
+              key={reply.id}
+              className="rounded-2xl border border-white/50 bg-white/35 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/80 font-mono text-xs font-bold text-accent-blue dark:border-white/10 dark:bg-white/20">
+                    {reply.nickname.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="text-sm font-semibold text-ink">
+                    {reply.nickname}
+                  </span>
+                  {reply.isAuthor ? (
+                    <span className="chip pixel-font !text-[11px] text-accent-pink">
+                      博主
+                    </span>
+                  ) : null}
+                  <span className="break-words text-xs text-ink-soft">
+                    {formatFullTime(reply.createdAt)}
+                    {reply.email ? ` · ${reply.email}` : ""}
+                  </span>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onReply(message.id)}
+                    className="icon-button !h-7 !w-7"
+                    aria-label="回复留言"
+                  >
+                    <Reply className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(reply.id, message.id)}
+                    className="icon-button !h-7 !w-7"
+                    aria-label="删除回复"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+              <RichText
+                content={reply.content}
+                className="mt-2 break-words text-sm leading-relaxed text-ink"
+              />
+              <AdminGuestImages images={reply.images} />
+              <span className="chip pixel-font mt-3 !text-[11px]">
+                {reply.likes || 0} 赞
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function Dashboard({
   profile,
   posts,
   projects,
   friends,
+  guestbookMessages,
   onNavigate,
 }: {
   profile: Profile | null;
   posts: AdminPost[];
   projects: Project[];
   friends: Friend[];
+  guestbookMessages: AdminGuestMessage[];
   onNavigate: (section: SectionKey) => void;
 }) {
   const stats = [
@@ -1614,6 +1984,11 @@ function Dashboard({
       label: "友链",
       value: friends.length,
       section: "friends" as SectionKey,
+    },
+    {
+      label: "留言",
+      value: guestbookMessages.length,
+      section: "guestbook" as SectionKey,
     },
     {
       label: "个人简介",
@@ -1636,7 +2011,7 @@ function Dashboard({
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => (
           <button
             key={stat.label}

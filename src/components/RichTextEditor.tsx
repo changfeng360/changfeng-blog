@@ -200,6 +200,7 @@ export default function RichTextEditor({
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
+  const suppressToolbarSyncRef = useRef(false);
   const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
   const [activeFormats, setActiveFormats] = useState<FormatState>({
@@ -255,6 +256,9 @@ export default function RichTextEditor({
   }
 
   function updateToolbarState() {
+    if (suppressToolbarSyncRef.current) {
+      return;
+    }
     if (!editorRef.current || document.activeElement !== editorRef.current) {
       return;
     }
@@ -305,8 +309,19 @@ export default function RichTextEditor({
   }
 
   function applyFormat(kind: FormatKind) {
+    suppressToolbarSyncRef.current = true;
+    saveSelection();
+    let wasActive = activeFormats[kind];
+    try {
+      wasActive = document.queryCommandState(kind);
+    } catch {
+      // Fall back to the locally tracked state when the browser does not expose it.
+    }
     execCommand(kind);
-    requestAnimationFrame(() => updateToolbarState());
+    setActiveFormats((current) => ({ ...current, [kind]: !wasActive }));
+    requestAnimationFrame(() => {
+      suppressToolbarSyncRef.current = false;
+    });
   }
 
   function applyColor(swatch: string) {
