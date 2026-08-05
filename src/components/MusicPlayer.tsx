@@ -3,10 +3,25 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
-import { ListMusic, Pause, Play, Volume2 } from "lucide-react";
-import { PLAYLIST, usePlayer } from "./PlayerProvider";
+import {
+  ListMusic,
+  Pause,
+  Play,
+  Repeat,
+  Repeat1,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from "lucide-react";
+import { PLAYLIST, usePlayer, type PlaybackMode } from "./PlayerProvider";
 
 const FALLBACK_COVER = "/pixels/luv-sic-album.jpg";
+const MODE_LABELS: Record<PlaybackMode, string> = {
+  sequential: "顺序",
+  single: "单曲",
+  shuffle: "乱序",
+};
 
 function formatTime(percent: number, totalSeconds: number) {
   const seconds = Math.floor((percent / 100) * totalSeconds);
@@ -27,13 +42,23 @@ export default function MusicPlayer() {
     duration,
     currentTrack,
     trackIndex,
+    playbackMode,
     togglePlayback,
     seek,
     changeVolume,
     selectTrack,
+    cyclePlaybackMode,
+    nextTrack,
+    previousTrack,
   } = usePlayer();
 
   const totalSeconds = duration || currentTrack.duration || 0;
+  const canPrevious =
+    playbackMode === "shuffle" ? true : trackIndex > 0;
+  const canNext =
+    playbackMode === "shuffle"
+      ? true
+      : trackIndex < PLAYLIST.length - 1;
 
   useEffect(() => {
     if (!playing) {
@@ -142,18 +167,67 @@ export default function MusicPlayer() {
                 {currentTrack.artist}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setPlaylistOpen((value) => !value);
-              }}
-              className="icon-button !h-8 !w-8"
-              aria-label="播放列表"
-              title="播放列表"
-            >
-              <ListMusic className="h-4 w-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  previousTrack();
+                }}
+                disabled={!canPrevious}
+                className="icon-button !h-7 !w-7 disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label="上一首"
+                title="上一首"
+              >
+                <SkipBack className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  nextTrack();
+                }}
+                disabled={!canNext}
+                className="icon-button !h-7 !w-7 disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label="下一首"
+                title="下一首"
+              >
+                <SkipForward className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  cyclePlaybackMode();
+                }}
+                className="flex h-7 items-center gap-1 rounded-full border border-white/60 bg-white/70 px-2 text-[10px] font-medium text-ink-soft backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white"
+                aria-label={`播放模式：${MODE_LABELS[playbackMode]}`}
+                title={`播放模式：${MODE_LABELS[playbackMode]}`}
+              >
+                {playbackMode === "shuffle" ? (
+                  <Shuffle className="h-3 w-3" />
+                ) : playbackMode === "single" ? (
+                  <Repeat1 className="h-3 w-3" />
+                ) : (
+                  <Repeat className="h-3 w-3" />
+                )}
+                <span className="hidden sm:inline">
+                  {MODE_LABELS[playbackMode]}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPlaylistOpen((value) => !value);
+                }}
+                className="icon-button !h-7 !w-7"
+                aria-label="播放列表"
+                title="播放列表"
+              >
+                <ListMusic className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="grid w-full grid-cols-[1.25rem_1fr_2.5rem] items-center gap-x-2 gap-y-1.5">

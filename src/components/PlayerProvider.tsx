@@ -17,6 +17,8 @@ export type PlayerTrack = {
   duration: number;
 };
 
+export type PlaybackMode = "sequential" | "single" | "shuffle";
+
 export const PLAYLIST: PlayerTrack[] = [
   {
     id: "luv-sic",
@@ -61,10 +63,12 @@ type PlayerContextValue = {
   duration: number;
   currentTrack: PlayerTrack;
   trackIndex: number;
+  playbackMode: PlaybackMode;
   togglePlayback: () => void;
   seek: (value: number) => void;
   changeVolume: (value: number) => void;
   selectTrack: (index: number) => void;
+  cyclePlaybackMode: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
 };
@@ -81,11 +85,13 @@ export function PlayerProvider({
   const [volume, setVolume] = useState(62);
   const [duration, setDuration] = useState(0);
   const [trackIndex, setTrackIndex] = useState(0);
+  const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("sequential");
 
   const currentTrack = PLAYLIST[trackIndex];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
   const playRequestedRef = useRef(false);
+  const historyRef = useRef<number[]>([]);
 
   const stopPlayback = () => {
     playRequestedRef.current = false;
@@ -127,10 +133,27 @@ export function PlayerProvider({
     }, 100);
   };
 
-  const selectTrack = (index: number) => {
+  const pickRandomIndex = (current: number) => {
+    const candidates = PLAYLIST.map((_, index) => index).filter(
+      (index) => index !== current,
+    );
+    if (candidates.length === 0) {
+      return null;
+    }
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  };
+
+  const playTrack = (index: number, recordHistory = true) => {
     const count = PLAYLIST.length;
-    const nextIndex = ((index % count) + count) % count;
+    const nextIndex = Math.max(0, Math.min(count - 1, index));
     const audio = audioRef.current;
+
+    if (recordHistory && nextIndex !== trackIndex) {
+      historyRef.current.push(trackIndex);
+      if (historyRef.current.length > 30) {
+        historyRef.current.shift();
+      }
+    }
 
     if (audio) {
       audio.src = PLAYLIST[nextIndex].src;
@@ -145,12 +168,70 @@ export function PlayerProvider({
     startPlayback(0);
   };
 
+  const selectTrack = (index: number) => {
+    playTrack(index);
+  };
+
   const nextTrack = () => {
-    selectTrack(trackIndex + 1);
+    if (playbackMode === "shuffle") {
+      const nextIndex = pickRandomIndex(trackIndex);
+      if (nextIndex !== null) {
+        playTrack(nextIndex);
+      }
+      return;
+    }
+    if (trackIndex >= PLAYLIST.length - 1) {
+      return;
+    }
+    playTrack(trackIndex + 1);
   };
 
   const previousTrack = () => {
-    selectTrack(trackIndex - 1);
+    if (playbackMode === "shuffle") {
+      const previous = historyRef.current.pop();
+      if (
+        typeof previous === "number" &&
+        previous >= 0 &&
+        previous < PLAYLIST.length &&
+        previous !== trackIndex
+      ) {
+        playTrack(previous, false);
+        return;
+      }
+    }
+    if (trackIndex <= 0) {
+      return;
+    }
+    playTrack(trackIndex - 1);
+  };
+
+  const handleEnded = () => {
+    if (playbackMode === "single") {
+      startPlayback(0);
+      return;
+    }
+    if (playbackMode === "shuffle") {
+      const nextIndex = pickRandomIndex(trackIndex);
+      if (nextIndex !== null) {
+        playTrack(nextIndex);
+      } else {
+        stopPlayback();
+      }
+      return;
+    }
+    if (trackIndex >= PLAYLIST.length - 1) {
+      setProgress(100);
+      stopPlayback();
+      return;
+    }
+    nextTrack();
+  };
+
+  const cyclePlaybackMode = () => {
+    setPlaybackMode((current) => {
+      const order: PlaybackMode[] = ["sequential", "single", "shuffle"];
+      return order[(order.indexOf(current) + 1) % order.length];
+    });
   };
 
   useEffect(() => {
@@ -194,10 +275,12 @@ export function PlayerProvider({
         duration,
         currentTrack,
         trackIndex,
+        playbackMode,
         togglePlayback,
         seek,
         changeVolume,
         selectTrack,
+        cyclePlaybackMode,
         nextTrack,
         previousTrack,
       }}
@@ -216,7 +299,7 @@ export function PlayerProvider({
             });
           }
         }}
-        onEnded={nextTrack}
+        onEnded={handleEnded}
       />
     </PlayerContext.Provider>
   );
