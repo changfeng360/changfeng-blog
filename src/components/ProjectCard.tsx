@@ -8,6 +8,7 @@ import AdminInlineEditor, {
   type AdminField,
 } from "@/components/admin/AdminInlineEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
+import RichText from "@/components/RichText";
 import type { Project } from "@/data/content";
 import { fadeUp, SPRING_SOFT } from "@/lib/motion";
 
@@ -106,9 +107,10 @@ export default function ProjectCard({
             {project.year}
           </span>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          {project.description}
-        </p>
+        <RichText
+          content={project.description}
+          className="mt-2 text-sm leading-relaxed text-ink-soft"
+        />
 
         <div className="mt-auto flex flex-wrap gap-1.5 pt-6">
           {project.stack.map((tech) => (

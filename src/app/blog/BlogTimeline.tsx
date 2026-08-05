@@ -10,6 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import RichText from "@/components/RichText";
 import AdminInlineEditor, {
   type AdminField,
 } from "@/components/admin/AdminInlineEditor";
@@ -202,9 +203,10 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
               <h2 className="mt-4 text-xl font-semibold leading-snug tracking-tight text-ink sm:text-2xl">
                 {post.title}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                {post.excerpt}
-              </p>
+              <RichText
+                content={post.excerpt}
+                className="mt-2 text-sm leading-relaxed text-ink-soft"
+              />
               <Link
                 href={`/blog/${post.slug}`}
                 className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent-blue"

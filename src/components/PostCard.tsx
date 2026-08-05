@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Clock3 } from "lucide-react";
+import RichText from "@/components/RichText";
 import type { Post } from "@/data/content";
 import { fadeUp, SPRING_SOFT } from "@/lib/motion";
 
@@ -42,9 +43,10 @@ export default function PostCard({ post }: { post: Post }) {
         <h3 className="mt-4 text-xl font-semibold leading-snug tracking-tight text-ink">
           {post.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-soft">
-          {post.excerpt}
-        </p>
+        <RichText
+          content={post.excerpt}
+          className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-soft"
+        />
 
         <div className="mt-5 flex items-center gap-3 text-xs text-ink-soft">
           <span>{formatDate(post.date)}</span>

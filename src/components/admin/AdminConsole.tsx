@@ -21,15 +21,16 @@ import {
   X,
 } from "lucide-react";
 import type { Friend, Post, Profile, Project } from "@/data/content";
+import RichText from "@/components/RichText";
 import AdminModal from "./AdminModal";
 import {
   CheckboxField,
   ColorField,
   NumberField,
+  RichTextAreaField,
   SelectField,
   SkillsEditor,
   StringListField,
-  TextAreaField,
   TextField,
 } from "./AdminFields";
 
@@ -1010,7 +1011,7 @@ export default function AdminConsole() {
               }
               className="sm:col-span-2"
             />
-            <TextAreaField
+            <RichTextAreaField
               label="介绍"
               value={profileDraft.intro}
               onChange={(value) =>
@@ -1019,7 +1020,7 @@ export default function AdminConsole() {
               rows={4}
               className="sm:col-span-2"
             />
-            <TextAreaField
+            <RichTextAreaField
               label="关于我"
               value={profileDraft.aboutDescription}
               onChange={(value) =>
@@ -1031,7 +1032,7 @@ export default function AdminConsole() {
               rows={4}
               className="sm:col-span-2"
             />
-            <TextAreaField
+            <RichTextAreaField
               label="口号"
               value={profileDraft.tagline}
               onChange={(value) =>
@@ -1118,7 +1119,7 @@ export default function AdminConsole() {
                 })
               }
             />
-            <TextAreaField
+            <RichTextAreaField
               label="摘要"
               value={postModal.draft.excerpt}
               onChange={(value) =>
@@ -1183,7 +1184,7 @@ export default function AdminConsole() {
                 })
               }
             />
-            <TextAreaField
+            <RichTextAreaField
               label="正文"
               value={postModal.draft.body}
               onChange={(value) =>
@@ -1232,7 +1233,7 @@ export default function AdminConsole() {
                 })
               }
             />
-            <TextAreaField
+            <RichTextAreaField
               label="描述"
               value={projectModal.draft.description}
               onChange={(value) =>
@@ -1335,7 +1336,7 @@ export default function AdminConsole() {
               }
               placeholder="Platform"
             />
-            <TextAreaField
+            <RichTextAreaField
               label="描述"
               value={friendModal.draft.description}
               onChange={(value) =>
@@ -1445,9 +1446,10 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl border border-white/60 bg-white/40 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
       <p className="text-xs font-medium text-ink-soft">{label}</p>
-      <p className="mt-1.5 break-words text-sm leading-relaxed text-ink">
-        {value || "未设置"}
-      </p>
+      <RichText
+        content={value || "未设置"}
+        className="mt-1.5 break-words text-sm leading-relaxed text-ink"
+      />
     </div>
   );
 }

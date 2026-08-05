@@ -8,21 +8,60 @@ import {
   useState,
 } from "react";
 
-export const PLAYER_TRACK = {
-  title: "Luv(sic) Part 2",
-  artist: "Nujabes feat. Shing02",
-  src: "/music/luv-sic-part-2.mp3",
-  duration: 270.26,
+export type PlayerTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  src: string;
+  duration: number;
 };
+
+export const PLAYLIST: PlayerTrack[] = [
+  {
+    id: "luv-sic",
+    title: "Luv(sic) Part 2",
+    artist: "Nujabes feat. Shing02",
+    src: "/music/luv-sic-part-2.mp3",
+    duration: 270.26,
+  },
+  {
+    id: "sacred-play",
+    title: "Sacred Play Secret Place",
+    artist: "Matryoshka",
+    src: "/music/sacred-play-secret-place.mp3",
+    duration: 0,
+  },
+  {
+    id: "unnamed-summer",
+    title: "未命名夏天",
+    artist: "木宇ning",
+    src: "/music/unnamed-summer-2022.mp3",
+    duration: 0,
+  },
+  {
+    id: "blue-dragon",
+    title: "Blue Dragon (piano & guitar ver.)",
+    artist: "澤野弘之",
+    src: "/music/blue-dragon-piano-guitar.mp3",
+    duration: 0,
+  },
+];
+
+export const PLAYER_TRACK = PLAYLIST[0];
 
 type PlayerContextValue = {
   playing: boolean;
   progress: number;
   volume: number;
   duration: number;
+  currentTrack: PlayerTrack;
+  trackIndex: number;
   togglePlayback: () => void;
   seek: (value: number) => void;
   changeVolume: (value: number) => void;
+  selectTrack: (index: number) => void;
+  nextTrack: () => void;
+  previousTrack: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -36,7 +75,9 @@ export function PlayerProvider({
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(62);
   const [duration, setDuration] = useState(0);
+  const [trackIndex, setTrackIndex] = useState(0);
 
+  const currentTrack = PLAYLIST[trackIndex];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -71,6 +112,33 @@ export function PlayerProvider({
         );
       }
     }, 100);
+  };
+
+  const selectTrack = (index: number) => {
+    const count = PLAYLIST.length;
+    const nextIndex = ((index % count) + count) % count;
+    const audio = audioRef.current;
+
+    if (audio) {
+      audio.src = PLAYLIST[nextIndex].src;
+      audio.currentTime = 0;
+      audio.volume = volume / 100;
+      if (playing) {
+        void audio.play().catch(() => setPlaying(false));
+      }
+    }
+
+    setTrackIndex(nextIndex);
+    setProgress(0);
+    setDuration(0);
+  };
+
+  const nextTrack = () => {
+    selectTrack(trackIndex + 1);
+  };
+
+  const previousTrack = () => {
+    selectTrack(trackIndex - 1);
   };
 
   useEffect(() => {
@@ -112,20 +180,26 @@ export function PlayerProvider({
         progress,
         volume,
         duration,
+        currentTrack,
+        trackIndex,
         togglePlayback,
         seek,
         changeVolume,
+        selectTrack,
+        nextTrack,
+        previousTrack,
       }}
     >
       {children}
       <audio
         ref={audioRef}
-        src={PLAYER_TRACK.src}
+        src={currentTrack.src}
         loop
         preload="metadata"
         onLoadedMetadata={(event) => {
           setDuration(event.currentTarget.duration);
         }}
+        onEnded={nextTrack}
       />
     </PlayerContext.Provider>
   );

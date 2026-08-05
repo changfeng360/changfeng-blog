@@ -11,6 +11,7 @@ import {
   Star,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import RichText from "@/components/RichText";
 import AdminInlineEditor, {
   type AdminField,
 } from "@/components/admin/AdminInlineEditor";
@@ -153,9 +154,10 @@ export default function SharePage() {
                 <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">
                   {friend.name}
                 </h3>
-                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-soft">
-                  {friend.description}
-                </p>
+                <RichText
+                  content={friend.description}
+                  className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-soft"
+                />
                 <div className="mt-5 flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <Star

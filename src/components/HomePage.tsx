@@ -20,6 +20,8 @@ import MusicPlayer from "@/components/MusicPlayer";
 import PixelAvatar from "@/components/PixelAvatar";
 import PixelCalendar from "@/components/PixelCalendar";
 import PostCard from "@/components/PostCard";
+import Guestbook from "@/components/Guestbook";
+import RichText from "@/components/RichText";
 import ProfileEditor from "@/components/admin/ProfileEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Post, Profile } from "@/data/content";
@@ -135,9 +137,10 @@ export default function HomePage({
                 </div>
               </div>
 
-              <p className="mt-6 max-w-full text-lg leading-relaxed text-ink sm:mt-8">
-                {currentProfile.intro}
-              </p>
+              <RichText
+                content={currentProfile.intro}
+                className="mt-6 max-w-full text-lg leading-relaxed text-ink sm:mt-8"
+              />
 
               <div className="mt-auto flex flex-wrap items-end justify-between gap-4 pt-6 sm:pt-8">
                 <div className="flex flex-wrap items-center gap-2">
@@ -217,9 +220,10 @@ export default function HomePage({
               <p className="mt-4 text-lg font-semibold leading-snug text-ink">
                 {posts[0].title}
               </p>
-              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft">
-                {posts[0].excerpt}
-              </p>
+              <RichText
+                content={posts[0].excerpt}
+                className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft"
+              />
               <Link
                 href={`/blog/${posts[0].slug}`}
                 className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-medium text-accent-blue"
@@ -325,6 +329,8 @@ export default function HomePage({
             ))}
           </div>
         </motion.section>
+
+        <Guestbook />
       </section>
     </div>
   );

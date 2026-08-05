@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  ArrowUpRight,
+  Check,
   Coffee,
   Compass,
+  Copy,
   Cpu,
   MapPin,
   Palette,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PixelAvatar from "@/components/PixelAvatar";
+import RichText from "@/components/RichText";
 import ProfileEditor from "@/components/admin/ProfileEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
 import type { Profile } from "@/data/content";
@@ -36,7 +37,7 @@ const principles = [
   {
     icon: Cpu,
     title: "玩乐",
-    body: "严肃地做正经事，也认真地在角落放一只像素猫。",
+    body: "严肃地做正经事，也认真地在角落放一只 Doro。",
     accent: "text-accent-mint",
   },
 ];
@@ -49,6 +50,24 @@ export default function AboutPageContent({
   const { editMode } = useAdmin();
   const [current, setCurrent] = useState(profile);
   const [editing, setEditing] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(current.email);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = current.email;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
     <div className="pb-8">
@@ -111,9 +130,10 @@ export default function AboutPageContent({
                   {current.coffee}
                 </span>
               </div>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink">
-                {current.tagline}
-              </p>
+              <RichText
+                content={current.tagline}
+                className="mt-5 max-w-2xl text-base leading-relaxed text-ink"
+              />
               <div className="mt-6 flex flex-wrap gap-2">
                 {current.tags.map(
                   (tag) => (
@@ -199,13 +219,19 @@ export default function AboutPageContent({
                 项目合作、写作交流、技术咨询，都欢迎从一封邮件开始。
               </p>
             </div>
-            <Link
-              href="mailto:changfeng360@gmail.com"
+            <button
+              type="button"
+              onClick={copyEmail}
               className="pixel-btn shrink-0 rounded-full px-6 py-3"
+              aria-label={copied ? "邮箱已复制" : "复制邮箱"}
             >
-              写封邮件
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
+              {copied ? "已复制" : "写封邮件"}
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </motion.div>
       </motion.section>

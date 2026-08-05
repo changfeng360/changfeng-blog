@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export type AdminField = {
   name: string;
@@ -160,10 +161,10 @@ export default function AdminInlineEditor({
                 {field.label}
               </span>
               {field.type === "textarea" ? (
-                <textarea
+                <RichTextEditor
                   value={String(value ?? "")}
-                  onChange={(event) => update(field.name, event.target.value)}
-                  className={`${inputClass} h-32 resize-y font-mono text-xs`}
+                  onChange={(nextValue) => update(field.name, nextValue)}
+                  rows={7}
                 />
               ) : (
                 <input

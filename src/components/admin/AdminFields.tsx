@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export const adminInputClass =
   "w-full rounded-2xl border border-white/60 bg-white/55 px-4 py-3 text-sm text-ink outline-none backdrop-blur-xl transition-colors duration-200 placeholder:text-ink-faint focus:border-accent-blue/60 dark:border-white/10 dark:bg-white/10 dark:text-white";
@@ -85,6 +86,35 @@ export function TextAreaField({
         placeholder={placeholder}
         rows={rows}
         className={`${adminInputClass} resize-y font-mono text-xs leading-relaxed`}
+      />
+    </Field>
+  );
+}
+
+export function RichTextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  rows = 6,
+  className,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  hint?: string;
+  rows?: number;
+  className?: string;
+}) {
+  return (
+    <Field label={label} hint={hint} className={className}>
+      <RichTextEditor
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
       />
     </Field>
   );
@@ -267,7 +297,7 @@ export function SkillsEditor({
       <div className="space-y-2">
         {value.map((skill, index) => (
           <div
-            key={`${skill.name}-${index}`}
+            key={index}
             className="flex items-center gap-2 rounded-2xl border border-white/60 bg-white/40 p-2 backdrop-blur-xl dark:border-white/10 dark:bg-white/10"
           >
             <input

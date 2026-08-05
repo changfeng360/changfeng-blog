@@ -38,7 +38,7 @@ export default function PixelCalendar() {
   return (
     <div className="flex h-full flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-ink">Pixel Calendar</span>
+        <span className="text-sm font-medium text-ink">Calendar</span>
         <div className="flex gap-1">
           <button
             type="button"
