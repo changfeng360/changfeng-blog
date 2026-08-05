@@ -218,7 +218,6 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef<Range | null>(null);
   const suppressToolbarSyncRef = useRef(false);
-  const suppressToolbarTimeoutRef = useRef<number | null>(null);
   const lastEmittedRef = useRef(value);
   const [draft, setDraft] = useState(value);
   const [activeFormats, setActiveFormats] = useState<FormatState>({
@@ -226,6 +225,7 @@ export default function RichTextEditor({
     italic: false,
     underline: false,
   });
+  const activeFormatsRef = useRef(activeFormats);
   const [activeColor, setActiveColor] = useState("");
   const [activeFont, setActiveFont] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -281,7 +281,7 @@ export default function RichTextEditor({
       return;
     }
     try {
-      setActiveFormats({
+      commitFormats({
         bold: document.queryCommandState("bold"),
         italic: document.queryCommandState("italic"),
         underline: document.queryCommandState("underline"),
@@ -293,6 +293,11 @@ export default function RichTextEditor({
     } catch {
       // queryCommand APIs are not available in every browser.
     }
+  }
+
+  function commitFormats(next: FormatState) {
+    activeFormatsRef.current = next;
+    setActiveFormats(next);
   }
 
   function commitFromEditor() {
@@ -331,33 +336,60 @@ export default function RichTextEditor({
     commitFromEditor();
   }
 
-  function applyFormat(kind: FormatKind) {
-    if (suppressToolbarTimeoutRef.current) {
-      window.clearTimeout(suppressToolbarTimeoutRef.current);
+  function reapplyCollapsedFormats() {
+    const selection = window.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (!range || !range.collapsed) {
+      return;
     }
+    restoreSelection();
+    for (const format of ["bold", "italic", "underline"] as FormatKind[]) {
+      if (
+        activeFormatsRef.current[format] &&
+        !document.queryCommandState(format)
+      ) {
+        document.execCommand(format);
+      }
+    }
+    saveSelection();
+    commitFromEditor();
+  }
+
+  function applyFormat(kind: FormatKind) {
     suppressToolbarSyncRef.current = true;
     saveSelection();
-    let wasActive = activeFormats[kind];
-    try {
-      wasActive = document.queryCommandState(kind);
-    } catch {
-      // Fall back to the locally tracked state when the browser does not expose it.
+    let wasActive = activeFormatsRef.current[kind];
+    const selection = window.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (range && !range.collapsed) {
+      try {
+        wasActive = document.queryCommandState(kind);
+      } catch {
+        // Keep the locally tracked state when the browser cannot report it.
+      }
     }
+    const nextFormats: FormatState = {
+      ...activeFormatsRef.current,
+      [kind]: !wasActive,
+    };
+    commitFormats(nextFormats);
     execCommand(kind);
-    setActiveFormats((current) => ({ ...current, [kind]: !wasActive }));
-    suppressToolbarTimeoutRef.current = window.setTimeout(() => {
-      suppressToolbarSyncRef.current = false;
-      suppressToolbarTimeoutRef.current = null;
-    }, 400);
+    reapplyCollapsedFormats();
   }
 
   function applyColor(swatch: string) {
+    suppressToolbarSyncRef.current = true;
     execCommand("foreColor", swatch);
+    reapplyCollapsedFormats();
     setActiveColor(swatch);
   }
 
   function applyFont(key: string) {
+    suppressToolbarSyncRef.current = true;
     execCommand("fontName", FONT_MAP[key] || "inherit");
+    reapplyCollapsedFormats();
     setActiveFont(key);
   }
 
@@ -389,9 +421,6 @@ export default function RichTextEditor({
     document.addEventListener("selectionchange", onSelectionChange);
     return () => {
       document.removeEventListener("selectionchange", onSelectionChange);
-      if (suppressToolbarTimeoutRef.current) {
-        window.clearTimeout(suppressToolbarTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -524,11 +553,24 @@ export default function RichTextEditor({
           aria-multiline="true"
           onInput={commitFromEditor}
           onBlur={saveSelection}
+          onPointerDown={() => {
+            suppressToolbarSyncRef.current = false;
+          }}
+          onKeyDown={(event) => {
+            if (
+              ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(
+                event.key,
+              )
+            ) {
+              suppressToolbarSyncRef.current = false;
+            }
+          }}
           onKeyUp={() => {
             saveSelection();
             updateToolbarState();
           }}
           onMouseUp={() => {
+            suppressToolbarSyncRef.current = false;
             saveSelection();
             updateToolbarState();
           }}
