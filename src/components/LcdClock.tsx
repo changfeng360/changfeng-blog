@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CloudSun, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 type WeatherInfo = {
   location: string;
@@ -344,47 +344,48 @@ export default function LcdClock() {
   const seconds = now ? pad(now.getSeconds()) : "--";
 
   return (
-    <div className="flex h-full flex-col justify-between gap-4 p-6">
+    <div className="flex h-full flex-col justify-between gap-6 p-6 sm:p-7">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-ink">
-          <CloudSun className="h-4 w-4 text-accent-tangerine" />
+          <span className="h-2 w-2 rounded-full bg-accent-mint shadow-[0_0_10px_rgba(110,211,182,0.9)]" />
           Moment
         </div>
-        <span className="chip pixel-font !text-[14px]">LIVE</span>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-ink-faint">
+          Live
+        </span>
       </div>
 
-      <div className="lcd-screen rounded-2xl p-4">
-        <div className="pixel-font flex items-baseline gap-2 text-4xl leading-none sm:text-5xl">
+      <div className="min-h-[118px]">
+        <div
+          className="flex items-baseline gap-2 font-mono text-[54px] font-medium leading-none tracking-[-0.04em] text-ink sm:text-[64px]"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
           <span>{time}</span>
-          <span className="animate-blink-cursor text-lg">:</span>
-          <span className="text-lg">{seconds}</span>
-        </div>
-        <div className="pixel-font mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-cyan-200/80">
-          <span>{date}</span>
-          <span className="text-pixel-gold">{weekday}</span>
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-cyan-300/10 pt-3 text-[12px]">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="pixel-font truncate">{weather.location}</span>
+          <span className="text-base font-normal text-ink-faint">
+            {seconds}
           </span>
-          <span className="pixel-font shrink-0">
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-xs text-ink-soft">
+          <span>{date}</span>
+          <span className="h-1 w-1 rounded-full bg-ink-faint" />
+          <span>{weekday}</span>
+        </div>
+      </div>
+
+      <div className="space-y-3 border-t border-black/5 pt-4 dark:border-white/10">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-1.5 text-sm text-ink">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
+            <span className="truncate">{weather.location}</span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-ink">
             {weather.temperature}°C
           </span>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
-          <span className="pixel-font text-cyan-200/70">
-            {weather.weather}
-          </span>
-          <span className="pixel-font text-cyan-200/70">
-            RH {weather.humidity}%
-          </span>
+        <div className="flex items-center justify-between gap-3 text-xs text-ink-soft">
+          <span>{weather.weather}</span>
+          <span>湿度 {weather.humidity}%</span>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-ink-soft">
-        <span>Local weather</span>
-        <span>Auto sync</span>
       </div>
     </div>
   );
