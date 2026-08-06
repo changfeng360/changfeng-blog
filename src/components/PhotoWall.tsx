@@ -1,7 +1,13 @@
 import { Camera } from "lucide-react";
 import type { Photo } from "@/data/content";
 
-export default function PhotoWall({ photos }: { photos: Photo[] }) {
+export default function PhotoWall({
+  photos,
+  title = "日常分享",
+}: {
+  photos: Photo[];
+  title?: string;
+}) {
   return (
     <div className="flex h-full flex-col p-6 sm:p-7">
       <div className="flex items-center justify-between">
@@ -10,7 +16,7 @@ export default function PhotoWall({ photos }: { photos: Photo[] }) {
             07 // DAILY
           </span>
           <h3 className="mt-3 text-xl font-semibold tracking-tight text-ink">
-            日常分享
+            {title}
           </h3>
         </div>
         <span className="pixel-font text-[14px] text-ink-soft">

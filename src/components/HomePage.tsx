@@ -116,7 +116,8 @@ export default function HomePage({
             01 // WELCOME
           </span>
           <h1 className="mt-5 font-serif text-4xl font-medium leading-[1.12] text-ink sm:text-5xl">
-            Welcome to Changfeng’s blog
+            {runtime.site?.sectionTitles?.welcome ||
+              "Welcome to Changfeng’s blog"}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">
                 这里是我的个人博客。记录代码、设计、Agent，以及一切让我想再多看一眼的小东西。
@@ -325,7 +326,7 @@ export default function HomePage({
                 <Coffee className="h-4 w-4 text-ink-soft" />
               </div>
               <h3 className="mt-4 text-base font-semibold text-ink">
-                最近在做
+                {runtime.site?.sectionTitles?.now || "最近在做"}
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-ink-soft">
                 {nowItems.map((item, index) => (
@@ -347,7 +348,10 @@ export default function HomePage({
             variants={fadeUp}
             className="glass min-h-[320px] rounded-4xl sm:col-span-2 lg:col-span-3"
           >
-            <PhotoWall photos={livePhotos} />
+            <PhotoWall
+              photos={livePhotos}
+              title={runtime.site?.sectionTitles?.photos || "日常分享"}
+            />
           </motion.div>
         </motion.section>
 
@@ -364,7 +368,7 @@ export default function HomePage({
                 02 // LATEST
               </span>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-                最新文章
+                {runtime.site?.sectionTitles?.latest || "最新文章"}
               </h2>
             </div>
             <Link
@@ -388,7 +392,9 @@ export default function HomePage({
           </div>
         </motion.section>
 
-        <Guestbook />
+        <Guestbook
+          title={runtime.site?.sectionTitles?.guestbook || "留言"}
+        />
       </section>
     </div>
   );

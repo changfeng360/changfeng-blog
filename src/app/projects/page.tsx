@@ -50,7 +50,7 @@ export default function ProjectsPage() {
     <div className="pb-8">
       <PageHeader
         eyebrow="03 // BUILDS"
-        title="我的项目"
+        title={runtime.site?.sectionTitles?.projects || "我的项目"}
         description="从像素终端到 Agent 编排台，每一个项目都是我把好奇心编译成可运行版本的证据。"
       />
 

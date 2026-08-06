@@ -8,5 +8,16 @@
     "重写个人博客的像素主题",
     "做一个能陪我写代码的小 Agent",
     "把 C++ 小引擎的渲染循环再压 5ms"
-  ]
+  ],
+  "sectionTitles": {
+    "welcome": "Welcome to Changfeng’s blog",
+    "latest": "最新文章",
+    "blog": "近期文章",
+    "projects": "我的项目",
+    "about": "关于我",
+    "share": "推荐分享与友链",
+    "guestbook": "留言",
+    "photos": "日常分享",
+    "now": "最近在做"
+  }
 }

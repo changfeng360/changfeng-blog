@@ -66,6 +66,7 @@ type SiteSettings = {
   backgroundColor: string;
   darkBackground: string;
   nowItems: string[];
+  sectionTitles: Record<string, string>;
 };
 
 type PostModalState = {
@@ -476,6 +477,20 @@ export default function AdminConsole() {
   const [photoModal, setPhotoModal] = useState<PhotoModalState | null>(null);
   const [musicModal, setMusicModal] = useState<MusicModalState | null>(null);
 
+  function updateSectionTitle(key: string, value: string) {
+    setSiteDraft((current) =>
+      current
+        ? {
+            ...current,
+            sectionTitles: {
+              ...(current.sectionTitles || {}),
+              [key]: value,
+            },
+          }
+        : current,
+    );
+  }
+
   async function api(
     path: string,
     options: RequestInit = {},
@@ -620,6 +635,10 @@ export default function AdminConsole() {
     setSiteDraft({
       ...site,
       nowItems: Array.isArray(site.nowItems) ? site.nowItems : [],
+      sectionTitles:
+        site.sectionTitles && typeof site.sectionTitles === "object"
+          ? site.sectionTitles
+          : {},
     });
     await loadGuestbook(authToken);
     await loadPosts(authToken);
@@ -1323,6 +1342,13 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
+              <SectionTitleEditor
+                label="关于我标题"
+                value={siteDraft?.sectionTitles?.about || ""}
+                onChange={(value) => updateSectionTitle("about", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <InfoItem label="名字" value={profile.name} />
@@ -1365,6 +1391,13 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
+              <SectionTitleEditor
+                label="近期文章标题"
+                value={siteDraft?.sectionTitles?.blog || ""}
+                onChange={(value) => updateSectionTitle("blog", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               <div className="grid gap-5 md:grid-cols-2">
                 {posts.map((post) => (
                   <PostCard
@@ -1398,6 +1431,13 @@ export default function AdminConsole() {
                     新建项目
                   </PrimaryButton>
                 }
+              />
+              <SectionTitleEditor
+                label="我的项目标题"
+                value={siteDraft?.sectionTitles?.projects || ""}
+                onChange={(value) => updateSectionTitle("projects", value)}
+                onSave={saveSite}
+                saving={saving}
               />
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {projects.map((project, index) => (
@@ -1440,6 +1480,13 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
+              <SectionTitleEditor
+                label="推荐分享与友链标题"
+                value={siteDraft?.sectionTitles?.share || ""}
+                onChange={(value) => updateSectionTitle("share", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {friends.map((friend, index) => (
                   <DataCard
@@ -1478,6 +1525,13 @@ export default function AdminConsole() {
                     添加照片
                   </PrimaryButton>
                 }
+              />
+              <SectionTitleEditor
+                label="日常分享标题"
+                value={siteDraft?.sectionTitles?.photos || ""}
+                onChange={(value) => updateSectionTitle("photos", value)}
+                onSave={saveSite}
+                saving={saving}
               />
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {photos.map((photo, index) => (
@@ -1596,6 +1650,13 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
+              <SectionTitleEditor
+                label="留言标题"
+                value={siteDraft?.sectionTitles?.guestbook || ""}
+                onChange={(value) => updateSectionTitle("guestbook", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               {guestbookError ? (
                 <div className="rounded-3xl border border-white/60 bg-white/60 px-4 py-3 text-sm text-accent-pink shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
                   {guestbookError}
@@ -1638,6 +1699,13 @@ export default function AdminConsole() {
                 title="最近在做"
                 description="编辑首页 NOW 板块中的内容。"
               />
+              <SectionTitleEditor
+                label="最近在做标题"
+                value={siteDraft?.sectionTitles?.now || ""}
+                onChange={(value) => updateSectionTitle("now", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <StringListField
                   label="最近在做"
@@ -1665,6 +1733,20 @@ export default function AdminConsole() {
               <SectionHeading
                 title="站点样式"
                 description="调整基础字号、标题斜体和全局配色。"
+              />
+              <SectionTitleEditor
+                label="首页欢迎标题"
+                value={siteDraft.sectionTitles.welcome || ""}
+                onChange={(value) => updateSectionTitle("welcome", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
+              <SectionTitleEditor
+                label="首页最新文章标题"
+                value={siteDraft.sectionTitles.latest || ""}
+                onChange={(value) => updateSectionTitle("latest", value)}
+                onSave={saveSite}
+                saving={saving}
               />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -2432,6 +2514,40 @@ function PrimaryButton({
       {icon}
       {children}
     </button>
+  );
+}
+
+function SectionTitleEditor({
+  label,
+  value,
+  onChange,
+  onSave,
+  saving,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="glass flex flex-col gap-3 rounded-4xl p-5 sm:flex-row sm:items-end">
+      <TextField
+        label={label}
+        value={value}
+        onChange={onChange}
+        className="flex-1"
+      />
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving}
+        className="pixel-btn shrink-0 rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Save className="h-4 w-4" />
+        保存标题
+      </button>
+    </div>
   );
 }
 

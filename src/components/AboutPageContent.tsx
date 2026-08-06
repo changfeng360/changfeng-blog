@@ -91,7 +91,7 @@ export default function AboutPageContent({
     <div className="pb-8">
       <PageHeader
         eyebrow="04 // PROFILE"
-        title="关于我"
+        title={runtime.site?.sectionTitles?.about || "关于我"}
         description={current.aboutDescription}
       />
 

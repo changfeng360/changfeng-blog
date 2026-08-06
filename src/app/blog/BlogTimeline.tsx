@@ -134,7 +134,7 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
     <div className="pb-8">
       <PageHeader
         eyebrow="02 // JOURNAL"
-        title="近期文章"
+        title={runtime.site?.sectionTitles?.blog || "近期文章"}
         description="按时间线记录我在代码、设计与 Agent 世界里的探索。没有太多宏大叙事，都是认真留下的脚印。"
       />
 
