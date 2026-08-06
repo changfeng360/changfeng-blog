@@ -45,7 +45,7 @@ function writeCache(content: RuntimeContent) {
 }
 
 export function useRuntimeContent() {
-  const [content, setContent] = useState<RuntimeContent | null>(readCache);
+  const [content, setContent] = useState<RuntimeContent>(readCache);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

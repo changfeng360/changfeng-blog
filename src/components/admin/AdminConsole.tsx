@@ -714,7 +714,13 @@ export default function AdminConsole() {
 
   async function deletePhoto(index: number) {
     const photo = photos[index];
-    if (!window.confirm("确定删除这张照片吗？")) {
+    if (
+      !window.confirm(
+        photo?.caption
+          ? `确定删除照片“${photo.caption}”吗？`
+          : "确定删除这张照片吗？",
+      )
+    ) {
       return;
     }
     setSaving(true);
