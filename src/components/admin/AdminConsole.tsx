@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FolderKanban,
   Globe2,
+  Home,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -44,7 +45,9 @@ import {
 
 type SectionKey =
   | "dashboard"
+  | "home"
   | "profile"
+  | "about"
   | "posts"
   | "projects"
   | "friends"
@@ -122,7 +125,9 @@ type AdminGuestMessage = AdminGuestReply & {
 
 const sectionMeta: Record<SectionKey, { label: string; eyebrow: string }> = {
   dashboard: { label: "仪表盘", eyebrow: "OVERVIEW" },
+  home: { label: "首页", eyebrow: "HOME" },
   profile: { label: "个人简介", eyebrow: "PROFILE" },
+  about: { label: "关于我", eyebrow: "ABOUT" },
   posts: { label: "文章管理", eyebrow: "POSTS" },
   projects: { label: "项目管理", eyebrow: "PROJECTS" },
   friends: { label: "友链管理", eyebrow: "FRIENDS" },
@@ -1097,7 +1102,7 @@ export default function AdminConsole() {
             {loading ? "正在进入..." : "管理员登录"}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            输入管理员令牌后即可编辑个人简介、文章、项目、友链和留言。
+            输入管理员令牌后即可编辑首页、关于我、文章、项目、友链和留言。
           </p>
           <input
             type="password"
@@ -1135,7 +1140,8 @@ export default function AdminConsole() {
     count?: number;
   }[] = [
     { key: "dashboard", label: "仪表盘", icon: LayoutDashboard },
-    { key: "profile", label: "个人简介", icon: UserRound },
+    { key: "home", label: "首页", icon: Home },
+    { key: "about", label: "关于我", icon: UserRound },
     { key: "posts", label: "文章", icon: BookOpenText, count: posts.length },
     {
       key: "projects",
@@ -1331,6 +1337,143 @@ export default function AdminConsole() {
               guestbookMessages={guestbookMessages}
               onNavigate={setSection}
             />
+          ) : null}
+
+          {section === "home" && profileDraft && siteDraft ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="首页"
+                description="管理首页欢迎卡片内容与副标题。"
+              />
+              <div className="glass rounded-4xl p-6 sm:p-8">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <TextField
+                    label="名字"
+                    value={profileDraft.name}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, name: value })
+                    }
+                  />
+                  <TextField
+                    label="邮箱"
+                    value={profileDraft.email}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, email: value })
+                    }
+                  />
+                  <TextField
+                    label="GitHub"
+                    value={profileDraft.github}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, github: value })
+                    }
+                  />
+                  <TextField
+                    label="Bilibili"
+                    value={profileDraft.bilibili}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, bilibili: value })
+                    }
+                  />
+                  <RichTextAreaField
+                    label="首页介绍"
+                    value={profileDraft.intro}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, intro: value })
+                    }
+                    rows={4}
+                    className="sm:col-span-2"
+                  />
+                </div>
+                <div className="mt-6">
+                  <PrimaryButton
+                    icon={<Save className="h-4 w-4" />}
+                    onClick={saveProfile}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "保存首页"}
+                  </PrimaryButton>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {section === "about" && profileDraft ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="关于我"
+                description="管理关于页中的个人资料、标签和技能。"
+              />
+              <div className="glass rounded-4xl p-6 sm:p-8">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <TextField
+                    label="名字"
+                    value={profileDraft.name}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, name: value })
+                    }
+                  />
+                  <TextField
+                    label="定位"
+                    value={profileDraft.location}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, location: value })
+                    }
+                  />
+                  <TextField
+                    label="咖啡"
+                    value={profileDraft.coffee}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, coffee: value })
+                    }
+                  />
+                  <RichTextAreaField
+                    label="关于我介绍"
+                    value={profileDraft.aboutDescription}
+                    onChange={(value) =>
+                      setProfileDraft({
+                        ...profileDraft,
+                        aboutDescription: value,
+                      })
+                    }
+                    rows={3}
+                  />
+                  <RichTextAreaField
+                    label="口号"
+                    value={profileDraft.tagline}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, tagline: value })
+                    }
+                    rows={3}
+                  />
+                  <StringListField
+                    label="标签"
+                    value={profileDraft.tags}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, tags: value })
+                    }
+                    className="sm:col-span-2"
+                  />
+                  <SkillsEditor
+                    label="技能"
+                    value={profileDraft.skills}
+                    onChange={(value) =>
+                      setProfileDraft({ ...profileDraft, skills: value })
+                    }
+                    className="sm:col-span-2"
+                  />
+                </div>
+                <div className="mt-6">
+                  <PrimaryButton
+                    icon={<Save className="h-4 w-4" />}
+                    onClick={saveProfile}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "保存关于我"}
+                  </PrimaryButton>
+                </div>
+              </div>
+            </section>
           ) : null}
 
           {section === "profile" && profile && profileDraft ? (
@@ -2933,7 +3076,7 @@ function Dashboard({
     {
       label: "个人简介",
       value: profile ? "已配置" : "未配置",
-      section: "profile" as SectionKey,
+      section: "about" as SectionKey,
     },
   ];
 
