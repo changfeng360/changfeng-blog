@@ -9,6 +9,7 @@ export type SiteSettings = {
   darkBackground: string;
   nowItems: string[];
   sectionTitles: Record<string, string>;
+  sectionSubtitles: Record<string, string>;
 };
 
 const sitePath = path.join(process.cwd(), "content", "site.json");

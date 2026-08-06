@@ -51,7 +51,10 @@ export default function ProjectsPage() {
       <PageHeader
         eyebrow="03 // BUILDS"
         title={runtime.site?.sectionTitles?.projects || "我的项目"}
-        description="从像素终端到 Agent 编排台，每一个项目都是我把好奇心编译成可运行版本的证据。"
+        description={
+          runtime.site?.sectionSubtitles?.projects ||
+          "从像素终端到 Agent 编排台，每一个项目都是我把好奇心编译成可运行版本的证据。"
+        }
       />
 
       <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-8">

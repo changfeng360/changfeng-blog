@@ -4,9 +4,11 @@ import type { Photo } from "@/data/content";
 export default function PhotoWall({
   photos,
   title = "日常分享",
+  subtitle = "把日常里舍不得忘掉的瞬间留在这里。",
 }: {
   photos: Photo[];
   title?: string;
+  subtitle?: string;
 }) {
   return (
     <div className="flex h-full flex-col p-6 sm:p-7">
@@ -18,6 +20,7 @@ export default function PhotoWall({
           <h3 className="mt-3 text-xl font-semibold tracking-tight text-ink">
             {title}
           </h3>
+          <p className="mt-1 text-sm text-ink-soft">{subtitle}</p>
         </div>
         <span className="pixel-font text-[14px] text-ink-soft">
           {photos.length} PHOTOS

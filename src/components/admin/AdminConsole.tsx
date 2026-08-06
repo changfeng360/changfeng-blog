@@ -67,6 +67,7 @@ type SiteSettings = {
   darkBackground: string;
   nowItems: string[];
   sectionTitles: Record<string, string>;
+  sectionSubtitles: Record<string, string>;
 };
 
 type PostModalState = {
@@ -477,13 +478,13 @@ export default function AdminConsole() {
   const [photoModal, setPhotoModal] = useState<PhotoModalState | null>(null);
   const [musicModal, setMusicModal] = useState<MusicModalState | null>(null);
 
-  function updateSectionTitle(key: string, value: string) {
+  function updateSectionSubtitle(key: string, value: string) {
     setSiteDraft((current) =>
       current
         ? {
             ...current,
-            sectionTitles: {
-              ...(current.sectionTitles || {}),
+            sectionSubtitles: {
+              ...(current.sectionSubtitles || {}),
               [key]: value,
             },
           }
@@ -638,6 +639,10 @@ export default function AdminConsole() {
       sectionTitles:
         site.sectionTitles && typeof site.sectionTitles === "object"
           ? site.sectionTitles
+          : {},
+      sectionSubtitles:
+        site.sectionSubtitles && typeof site.sectionSubtitles === "object"
+          ? site.sectionSubtitles
           : {},
     });
     await loadGuestbook(authToken);
@@ -1342,13 +1347,6 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="关于我标题"
-                value={siteDraft?.sectionTitles?.about || ""}
-                onChange={(value) => updateSectionTitle("about", value)}
-                onSave={saveSite}
-                saving={saving}
-              />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   <InfoItem label="名字" value={profile.name} />
@@ -1391,10 +1389,10 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="近期文章标题"
-                value={siteDraft?.sectionTitles?.blog || ""}
-                onChange={(value) => updateSectionTitle("blog", value)}
+              <SectionSubtitleEditor
+                label="近期文章副标题"
+                value={siteDraft?.sectionSubtitles?.blog || ""}
+                onChange={(value) => updateSectionSubtitle("blog", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -1432,10 +1430,10 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="我的项目标题"
-                value={siteDraft?.sectionTitles?.projects || ""}
-                onChange={(value) => updateSectionTitle("projects", value)}
+              <SectionSubtitleEditor
+                label="我的项目副标题"
+                value={siteDraft?.sectionSubtitles?.projects || ""}
+                onChange={(value) => updateSectionSubtitle("projects", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -1480,10 +1478,10 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="推荐分享与友链标题"
-                value={siteDraft?.sectionTitles?.share || ""}
-                onChange={(value) => updateSectionTitle("share", value)}
+              <SectionSubtitleEditor
+                label="推荐分享与友链副标题"
+                value={siteDraft?.sectionSubtitles?.share || ""}
+                onChange={(value) => updateSectionSubtitle("share", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -1526,10 +1524,10 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="日常分享标题"
-                value={siteDraft?.sectionTitles?.photos || ""}
-                onChange={(value) => updateSectionTitle("photos", value)}
+              <SectionSubtitleEditor
+                label="日常分享副标题"
+                value={siteDraft?.sectionSubtitles?.photos || ""}
+                onChange={(value) => updateSectionSubtitle("photos", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -1650,10 +1648,10 @@ export default function AdminConsole() {
                   </PrimaryButton>
                 }
               />
-              <SectionTitleEditor
-                label="留言标题"
-                value={siteDraft?.sectionTitles?.guestbook || ""}
-                onChange={(value) => updateSectionTitle("guestbook", value)}
+              <SectionSubtitleEditor
+                label="留言副标题"
+                value={siteDraft?.sectionSubtitles?.guestbook || ""}
+                onChange={(value) => updateSectionSubtitle("guestbook", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -1699,13 +1697,6 @@ export default function AdminConsole() {
                 title="最近在做"
                 description="编辑首页 NOW 板块中的内容。"
               />
-              <SectionTitleEditor
-                label="最近在做标题"
-                value={siteDraft?.sectionTitles?.now || ""}
-                onChange={(value) => updateSectionTitle("now", value)}
-                onSave={saveSite}
-                saving={saving}
-              />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <StringListField
                   label="最近在做"
@@ -1734,17 +1725,10 @@ export default function AdminConsole() {
                 title="站点样式"
                 description="调整基础字号、标题斜体和全局配色。"
               />
-              <SectionTitleEditor
-                label="首页欢迎标题"
-                value={siteDraft.sectionTitles.welcome || ""}
-                onChange={(value) => updateSectionTitle("welcome", value)}
-                onSave={saveSite}
-                saving={saving}
-              />
-              <SectionTitleEditor
-                label="首页最新文章标题"
-                value={siteDraft.sectionTitles.latest || ""}
-                onChange={(value) => updateSectionTitle("latest", value)}
+              <SectionSubtitleEditor
+                label="首页欢迎副标题"
+                value={siteDraft.sectionSubtitles.welcome || ""}
+                onChange={(value) => updateSectionSubtitle("welcome", value)}
                 onSave={saveSite}
                 saving={saving}
               />
@@ -2517,7 +2501,7 @@ function PrimaryButton({
   );
 }
 
-function SectionTitleEditor({
+function SectionSubtitleEditor({
   label,
   value,
   onChange,
@@ -2531,21 +2515,21 @@ function SectionTitleEditor({
   saving: boolean;
 }) {
   return (
-    <div className="glass flex flex-col gap-3 rounded-4xl p-5 sm:flex-row sm:items-end">
-      <TextField
+    <div className="glass flex flex-col gap-3 rounded-4xl p-5">
+      <RichTextAreaField
         label={label}
         value={value}
         onChange={onChange}
-        className="flex-1"
+        rows={2}
       />
       <button
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="pixel-btn shrink-0 rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+        className="pixel-btn self-end rounded-full px-5 py-3 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Save className="h-4 w-4" />
-        保存标题
+        保存副标题
       </button>
     </div>
   );
@@ -2962,9 +2946,9 @@ function Dashboard({
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
           欢迎回来，{profile?.name || "长风"}
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          所有修改会写入 GitHub 仓库，部署后自动更新站点。
-        </p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
+            所有修改会保存到 Cloudflare KV，并在前台立即同步更新。
+          </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">

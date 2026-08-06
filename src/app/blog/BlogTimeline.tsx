@@ -135,7 +135,10 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
       <PageHeader
         eyebrow="02 // JOURNAL"
         title={runtime.site?.sectionTitles?.blog || "近期文章"}
-        description="按时间线记录我在代码、设计与 Agent 世界里的探索。没有太多宏大叙事，都是认真留下的脚印。"
+        description={
+          runtime.site?.sectionSubtitles?.blog ||
+          "按时间线记录我在代码、设计与 Agent 世界里的探索。没有太多宏大叙事，都是认真留下的脚印。"
+        }
       />
 
       <div className="mx-auto mt-10 max-w-3xl px-5 sm:px-8">

@@ -139,6 +139,7 @@ type SiteSettingsFromApi = {
   darkBackground: string;
   nowItems?: string[];
   sectionTitles?: Record<string, string>;
+  sectionSubtitles?: Record<string, string>;
 };
 
 export function useSettings() {

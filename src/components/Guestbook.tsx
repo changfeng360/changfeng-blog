@@ -132,7 +132,13 @@ async function compressImage(file: File): Promise<string> {
   return output;
 }
 
-export default function Guestbook({ title = "留言" }: { title?: string }) {
+export default function Guestbook({
+  title = "留言",
+  subtitle = "在这里留下你的足迹~",
+}: {
+  title?: string;
+  subtitle?: string;
+}) {
   const { isAdmin, token } = useAdmin();
   const [messages, setMessages] = useState<GuestMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -376,7 +382,7 @@ export default function Guestbook({ title = "留言" }: { title?: string }) {
             {title}
           </h2>
           <p className="mt-1 text-sm text-ink-soft">
-            在这里留下你的足迹~
+            {subtitle}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

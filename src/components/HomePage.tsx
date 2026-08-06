@@ -120,7 +120,8 @@ export default function HomePage({
               "Welcome to Changfeng’s blog"}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">
-                这里是我的个人博客。记录代码、设计、Agent，以及一切让我想再多看一眼的小东西。
+            {runtime.site?.sectionSubtitles?.welcome ||
+              "这里是我的个人博客。记录代码、设计、Agent，以及一切让我想再多看一眼的小东西。"}
           </p>
         </motion.div>
 
@@ -351,6 +352,10 @@ export default function HomePage({
             <PhotoWall
               photos={livePhotos}
               title={runtime.site?.sectionTitles?.photos || "日常分享"}
+              subtitle={
+                runtime.site?.sectionSubtitles?.photos ||
+                "把日常里舍不得忘掉的瞬间留在这里。"
+              }
             />
           </motion.div>
         </motion.section>
@@ -394,6 +399,10 @@ export default function HomePage({
 
         <Guestbook
           title={runtime.site?.sectionTitles?.guestbook || "留言"}
+          subtitle={
+            runtime.site?.sectionSubtitles?.guestbook ||
+            "在这里留下你的足迹~"
+          }
         />
       </section>
     </div>

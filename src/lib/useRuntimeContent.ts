@@ -25,6 +25,7 @@ export type RuntimeContent = {
     darkBackground: string;
     nowItems?: string[];
     sectionTitles?: Record<string, string>;
+    sectionSubtitles?: Record<string, string>;
   };
 };
 

@@ -71,7 +71,10 @@ export default function SharePage() {
       <PageHeader
         eyebrow="05 // LINKS"
         title={runtime.site?.sectionTitles?.share || "推荐分享与友链"}
-        description="收藏一些常去的平台、灵感与工具。好的地方值得被更多人看见。"
+        description={
+          runtime.site?.sectionSubtitles?.share ||
+          "收藏一些常去的平台、灵感与工具。好的地方值得被更多人看见。"
+        }
       />
 
       <div className="mx-auto mt-10 max-w-5xl px-5 sm:px-8">
