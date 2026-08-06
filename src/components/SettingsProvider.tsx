@@ -85,7 +85,9 @@ export function SettingsProvider({
   }, [settings.theme]);
 
   useEffect(() => {
-    fetch("/api/content", { cache: "no-store" })
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    fetch("/api/content", { cache: "no-store", signal: controller.signal })
       .then((response) => response.json().catch(() => ({})))
       .then((data: { site?: SiteSettingsFromApi }) => {
         const site = data.site;
@@ -104,7 +106,14 @@ export function SettingsProvider({
       })
       .catch(() => {
         // Keep the build-time site settings when the API is unavailable.
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
       });
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {

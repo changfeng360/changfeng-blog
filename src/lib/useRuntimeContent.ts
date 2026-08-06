@@ -50,8 +50,10 @@ export function useRuntimeContent() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
     setLoading(true);
-    fetch("/api/content", { cache: "no-store" })
+    fetch("/api/content", { cache: "no-store", signal: controller.signal })
       .then((response) => response.json().catch(() => ({})))
       .then((data: RuntimeContent & { error?: string }) => {
         if (active && data && !data.error) {
@@ -63,12 +65,15 @@ export function useRuntimeContent() {
         // Keep the static fallback when the API is unavailable.
       })
       .finally(() => {
+        window.clearTimeout(timeoutId);
         if (active) {
           setLoading(false);
         }
       });
     return () => {
       active = false;
+      controller.abort();
+      window.clearTimeout(timeoutId);
     };
   }, []);
 
