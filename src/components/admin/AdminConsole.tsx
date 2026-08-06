@@ -1345,6 +1345,13 @@ export default function AdminConsole() {
                 title="首页"
                 description="管理首页欢迎卡片内容与副标题。"
               />
+              <SectionSubtitleEditor
+                label="首页欢迎副标题"
+                value={siteDraft.sectionSubtitles.welcome || ""}
+                onChange={(value) => updateSectionSubtitle("welcome", value)}
+                onSave={saveSite}
+                saving={saving}
+              />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <TextField
@@ -1867,13 +1874,6 @@ export default function AdminConsole() {
               <SectionHeading
                 title="站点样式"
                 description="调整基础字号、标题斜体和全局配色。"
-              />
-              <SectionSubtitleEditor
-                label="首页欢迎副标题"
-                value={siteDraft.sectionSubtitles.welcome || ""}
-                onChange={(value) => updateSectionSubtitle("welcome", value)}
-                onSave={saveSite}
-                saving={saving}
               />
               <div className="glass rounded-4xl p-6 sm:p-8">
                 <div className="grid gap-5 sm:grid-cols-2">

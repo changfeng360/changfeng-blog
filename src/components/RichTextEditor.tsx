@@ -421,37 +421,37 @@ export default function RichTextEditor({
       underline: false,
     };
     const readNode = (node: Node | null) => {
-      let element =
+      const element =
         node?.nodeType === Node.ELEMENT_NODE
           ? (node as HTMLElement)
           : node?.parentElement ?? null;
-      while (element && element !== editorRef.current) {
-        const tag = element.tagName.toLowerCase();
-        const fontWeight = element.style.fontWeight;
-        const fontStyle = element.style.fontStyle;
-        const decoration =
-          element.style.textDecorationLine || element.style.textDecoration || "";
-        if (
-          tag === "b" ||
-          tag === "strong" ||
-          fontWeight === "bold" ||
-          fontWeight === "bolder" ||
-          (Number(fontWeight) >= 600 && fontWeight !== "")
-        ) {
-          state.bold = true;
-        }
-        if (
-          tag === "i" ||
-          tag === "em" ||
-          fontStyle === "italic" ||
-          fontStyle === "oblique"
-        ) {
-          state.italic = true;
-        }
-        if (tag === "u" || decoration.includes("underline")) {
-          state.underline = true;
-        }
-        element = element.parentElement;
+      if (!element || element === editorRef.current) {
+        return;
+      }
+      const tag = element.tagName.toLowerCase();
+      const fontWeight = element.style.fontWeight;
+      const fontStyle = element.style.fontStyle;
+      const decoration =
+        element.style.textDecorationLine || element.style.textDecoration || "";
+      if (
+        tag === "b" ||
+        tag === "strong" ||
+        fontWeight === "bold" ||
+        fontWeight === "bolder" ||
+        (Number(fontWeight) >= 600 && fontWeight !== "")
+      ) {
+        state.bold = true;
+      }
+      if (
+        tag === "i" ||
+        tag === "em" ||
+        fontStyle === "italic" ||
+        fontStyle === "oblique"
+      ) {
+        state.italic = true;
+      }
+      if (tag === "u" || decoration.includes("underline")) {
+        state.underline = true;
       }
     };
     readNode(selection.anchorNode);
