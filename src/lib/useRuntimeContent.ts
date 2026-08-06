@@ -80,9 +80,7 @@ function fetchRuntimeContent() {
 export function useRuntimeContent() {
   const cached = readCache();
   const [content, setContent] = useState<RuntimeContent>(cached);
-  const [loading, setLoading] = useState(
-    Object.keys(cached).length === 0,
-  );
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
