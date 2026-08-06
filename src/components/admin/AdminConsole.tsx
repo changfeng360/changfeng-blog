@@ -61,6 +61,7 @@ type SiteSettings = {
   accentColor: string;
   backgroundColor: string;
   darkBackground: string;
+  nowItems: string[];
 };
 
 type PostModalState = {
@@ -453,7 +454,11 @@ export default function AdminConsole() {
     setProjects(projectsData as Project[]);
     setFriends(friendsData as Friend[]);
     setPhotos(photosData as Photo[]);
-    setSiteDraft(siteData as SiteSettings);
+    const site = siteData as SiteSettings;
+    setSiteDraft({
+      ...site,
+      nowItems: Array.isArray(site.nowItems) ? site.nowItems : [],
+    });
     await loadGuestbook(authToken);
     await loadPosts(authToken);
   }
@@ -1371,14 +1376,23 @@ export default function AdminConsole() {
                       setSiteDraft({ ...siteDraft, backgroundColor: value })
                     }
                   />
-                  <ColorField
-                    label="深色背景"
-                    value={siteDraft.darkBackground}
-                    onChange={(value) =>
-                      setSiteDraft({ ...siteDraft, darkBackground: value })
-                    }
-                  />
-                </div>
+                    <ColorField
+                      label="深色背景"
+                      value={siteDraft.darkBackground}
+                      onChange={(value) =>
+                        setSiteDraft({ ...siteDraft, darkBackground: value })
+                      }
+                    />
+                    <StringListField
+                      label="最近在做"
+                      value={siteDraft.nowItems}
+                      onChange={(value) =>
+                        setSiteDraft({ ...siteDraft, nowItems: value })
+                      }
+                      placeholder="一行一件事"
+                      className="sm:col-span-2"
+                    />
+                  </div>
                 <div className="mt-6 flex items-center gap-3">
                   <PrimaryButton
                     icon={<Save className="h-4 w-4" />}

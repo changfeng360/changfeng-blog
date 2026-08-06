@@ -3,5 +3,10 @@
   "headingItalic": true,
   "accentColor": "#0071e3",
   "backgroundColor": "#f5f5f7",
-  "darkBackground": "#0d0d0f"
+  "darkBackground": "#0d0d0f",
+  "nowItems": [
+    "重写个人博客的像素主题",
+    "做一个能陪我写代码的小 Agent",
+    "把 C++ 小引擎的渲染循环再压 5ms"
+  ]
 }

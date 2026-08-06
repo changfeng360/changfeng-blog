@@ -137,6 +137,7 @@ type SiteSettingsFromApi = {
   accentColor: string;
   backgroundColor: string;
   darkBackground: string;
+  nowItems?: string[];
 };
 
 export function useSettings() {

@@ -7,6 +7,7 @@ export type SiteSettings = {
   accentColor: string;
   backgroundColor: string;
   darkBackground: string;
+  nowItems: string[];
 };
 
 const sitePath = path.join(process.cwd(), "content", "site.json");

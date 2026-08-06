@@ -15,6 +15,7 @@ export type RuntimeContent = {
     accentColor: string;
     backgroundColor: string;
     darkBackground: string;
+    nowItems?: string[];
   };
 };
 

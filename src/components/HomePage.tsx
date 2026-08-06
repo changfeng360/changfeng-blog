@@ -29,7 +29,7 @@ import type { Photo, Post, Profile, Project } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
-const nowList = [
+const DEFAULT_NOW_ITEMS = [
   "重写个人博客的像素主题",
   "做一个能陪我写代码的小 Agent",
   "把 C++ 小引擎的渲染循环再压 5ms",
@@ -46,6 +46,7 @@ export default function HomePage({
   const [livePosts, setLivePosts] = useState(posts);
   const [livePhotos, setLivePhotos] = useState<Photo[]>([]);
   const [liveProjects, setLiveProjects] = useState<Project[]>([]);
+  const [nowItems, setNowItems] = useState(DEFAULT_NOW_ITEMS);
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [editingProfile, setEditingProfile] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
@@ -68,6 +69,9 @@ export default function HomePage({
     }
     if (runtime.projects) {
       setLiveProjects(runtime.projects);
+    }
+    if (runtime.site?.nowItems) {
+      setNowItems(runtime.site.nowItems);
     }
   }, [runtime, loading]);
 
@@ -324,7 +328,7 @@ export default function HomePage({
                 最近在做
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-ink-soft">
-                {nowList.map((item, index) => (
+                {nowItems.map((item, index) => (
                   <li key={item} className="flex gap-2">
                     <span className="pixel-font text-[14px] text-accent-pink">
                       {String(index + 1).padStart(2, "0")}
