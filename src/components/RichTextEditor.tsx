@@ -291,11 +291,7 @@ export default function RichTextEditor({
       return;
     }
     try {
-      commitFormats({
-        bold: document.queryCommandState("bold"),
-        italic: document.queryCommandState("italic"),
-        underline: document.queryCommandState("underline"),
-      });
+      commitFormats(formatStateAtSelection());
       const color = document.queryCommandValue("foreColor");
       const queriedColor = normalizeHex(color || "");
       const selection = window.getSelection();
@@ -401,6 +397,66 @@ export default function RichTextEditor({
       return "";
     };
     return readColor(selection.anchorNode) || readColor(selection.focusNode);
+  }
+
+  function formatStateAtSelection(): FormatState {
+    const selection = window.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (!range || !range.collapsed) {
+      try {
+        return {
+          bold: document.queryCommandState("bold"),
+          italic: document.queryCommandState("italic"),
+          underline: document.queryCommandState("underline"),
+        };
+      } catch {
+        return { bold: false, italic: false, underline: false };
+      }
+    }
+
+    const state: FormatState = {
+      bold: false,
+      italic: false,
+      underline: false,
+    };
+    const readNode = (node: Node | null) => {
+      let element =
+        node?.nodeType === Node.ELEMENT_NODE
+          ? (node as HTMLElement)
+          : node?.parentElement ?? null;
+      while (element && element !== editorRef.current) {
+        const tag = element.tagName.toLowerCase();
+        const fontWeight = element.style.fontWeight;
+        const fontStyle = element.style.fontStyle;
+        const decoration =
+          element.style.textDecorationLine || element.style.textDecoration || "";
+        if (
+          tag === "b" ||
+          tag === "strong" ||
+          fontWeight === "bold" ||
+          fontWeight === "bolder" ||
+          (Number(fontWeight) >= 600 && fontWeight !== "")
+        ) {
+          state.bold = true;
+        }
+        if (
+          tag === "i" ||
+          tag === "em" ||
+          fontStyle === "italic" ||
+          fontStyle === "oblique"
+        ) {
+          state.italic = true;
+        }
+        if (tag === "u" || decoration.includes("underline")) {
+          state.underline = true;
+        }
+        element = element.parentElement;
+      }
+    };
+    readNode(selection.anchorNode);
+    readNode(selection.focusNode);
+    return state;
   }
 
   function markColorAtSelection(swatch: string) {
