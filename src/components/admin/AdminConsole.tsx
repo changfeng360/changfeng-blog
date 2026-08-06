@@ -351,7 +351,7 @@ async function readId3Metadata(file: File) {
     }
     const encoding = payload[0];
     const value = decodeId3Text(payload.subarray(1), encoding)
-      .replace(/\0.*$/s, "")
+      .replace(/\0[\s\S]*$/, "")
       .trim();
     if (major < 3 && id === "TT2") {
       meta.title = value;
