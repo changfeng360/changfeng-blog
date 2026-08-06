@@ -30,27 +30,44 @@ export type RuntimeContent = {
 };
 
 const CACHE_KEY = "changfeng-runtime-content-v1";
+const CACHE_TTL = 30_000;
 let runtimeRequest: Promise<RuntimeContent> | null = null;
 
-function readCache(): RuntimeContent {
+function readCacheWithMeta(): { data: RuntimeContent; fresh: boolean } {
   if (typeof window === "undefined") {
-    return {};
+    return { data: {}, fresh: false };
   }
   try {
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) {
-      return {};
+      return { data: {}, fresh: false };
     }
-    const parsed = JSON.parse(raw) as RuntimeContent;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    const parsed = JSON.parse(raw) as {
+      savedAt?: number;
+      data?: RuntimeContent;
+    };
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.data &&
+      typeof parsed.data === "object" &&
+      typeof parsed.savedAt === "number" &&
+      Date.now() - parsed.savedAt < CACHE_TTL
+    ) {
+      return { data: parsed.data, fresh: true };
+    }
+    return { data: {}, fresh: false };
   } catch {
-    return {};
+    return { data: {}, fresh: false };
   }
 }
 
 function writeCache(content: RuntimeContent) {
   try {
-    window.localStorage.setItem(CACHE_KEY, JSON.stringify(content));
+    window.localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ savedAt: Date.now(), data: content }),
+    );
   } catch {
     // Storage can be unavailable in private mode.
   }
@@ -78,9 +95,9 @@ function fetchRuntimeContent() {
 }
 
 export function useRuntimeContent() {
-  const cached = readCache();
-  const [content, setContent] = useState<RuntimeContent>(cached);
-  const [loading, setLoading] = useState(false);
+  const cached = readCacheWithMeta();
+  const [content, setContent] = useState<RuntimeContent>(cached.data);
+  const [loading, setLoading] = useState(!cached.fresh);
 
   useEffect(() => {
     let active = true;
