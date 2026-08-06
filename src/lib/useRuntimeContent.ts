@@ -9,6 +9,14 @@ export type RuntimeContent = {
   projects?: Project[];
   friends?: Friend[];
   photos?: Photo[];
+  music?: {
+    id: string;
+    title: string;
+    artist: string;
+    src: string;
+    cover: string;
+    duration: number;
+  }[];
   site?: {
     baseFontSize: number;
     headingItalic: boolean;

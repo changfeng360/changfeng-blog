@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
 export type PlayerTrack = {
   id: string;
@@ -71,6 +72,7 @@ type PlayerContextValue = {
   cyclePlaybackMode: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
+  playlist: PlayerTrack[];
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -84,10 +86,21 @@ export function PlayerProvider({
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(62);
   const [duration, setDuration] = useState(0);
+  const [playlist, setPlaylist] = useState<PlayerTrack[]>(PLAYLIST);
   const [trackIndex, setTrackIndex] = useState<number | null>(null);
   const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("sequential");
+  const { content: runtime } = useRuntimeContent();
 
-  const currentTrack = trackIndex === null ? null : PLAYLIST[trackIndex];
+  useEffect(() => {
+    if (runtime.music) {
+      setPlaylist(runtime.music);
+    }
+  }, [runtime]);
+
+  const currentTrack =
+    trackIndex !== null && playlist[trackIndex]
+      ? playlist[trackIndex]
+      : null;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
   const playRequestedRef = useRef(false);
@@ -134,7 +147,7 @@ export function PlayerProvider({
   };
 
   const pickRandomIndex = (current: number) => {
-    const candidates = PLAYLIST.map((_, index) => index).filter(
+    const candidates = playlist.map((_, index) => index).filter(
       (index) => index !== current,
     );
     if (candidates.length === 0) {
@@ -144,7 +157,7 @@ export function PlayerProvider({
   };
 
   const playTrack = (index: number, recordHistory = true) => {
-    const count = PLAYLIST.length;
+    const count = playlist.length;
     const nextIndex = Math.max(0, Math.min(count - 1, index));
     const audio = audioRef.current;
 
@@ -156,7 +169,7 @@ export function PlayerProvider({
     }
 
     if (audio) {
-      audio.src = PLAYLIST[nextIndex].src;
+      audio.src = playlist[nextIndex].src;
       audio.load();
       audio.currentTime = 0;
       audio.volume = volume / 100;
@@ -183,7 +196,7 @@ export function PlayerProvider({
       }
       return;
     }
-    if (trackIndex >= PLAYLIST.length - 1) {
+    if (trackIndex >= playlist.length - 1) {
       return;
     }
     playTrack(trackIndex + 1);
@@ -198,7 +211,7 @@ export function PlayerProvider({
       if (
         typeof previous === "number" &&
         previous >= 0 &&
-        previous < PLAYLIST.length &&
+        previous < playlist.length &&
         previous !== trackIndex
       ) {
         playTrack(previous, false);
@@ -228,7 +241,7 @@ export function PlayerProvider({
       }
       return;
     }
-    if (trackIndex >= PLAYLIST.length - 1) {
+    if (trackIndex >= playlist.length - 1) {
       setProgress(100);
       stopPlayback();
       return;
@@ -295,6 +308,7 @@ export function PlayerProvider({
         cyclePlaybackMode,
         nextTrack,
         previousTrack,
+        playlist,
       }}
     >
       {children}

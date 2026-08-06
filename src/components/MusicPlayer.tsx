@@ -15,7 +15,7 @@ import {
   SkipForward,
   Volume2,
 } from "lucide-react";
-import { PLAYLIST, usePlayer, type PlaybackMode } from "./PlayerProvider";
+import { usePlayer, type PlaybackMode } from "./PlayerProvider";
 
 const FALLBACK_COVER = "/pixels/luv-sic-album.jpg";
 const MODE_LABELS: Record<PlaybackMode, string> = {
@@ -44,6 +44,7 @@ export default function MusicPlayer() {
     currentTrack,
     trackIndex,
     playbackMode,
+    playlist,
     togglePlayback,
     seek,
     changeVolume,
@@ -62,7 +63,7 @@ export default function MusicPlayer() {
     hasTrack &&
     (playbackMode === "shuffle"
       ? true
-      : (trackIndex ?? 0) < PLAYLIST.length - 1);
+      : (trackIndex ?? 0) < playlist.length - 1);
 
   useEffect(() => {
     if (!playing) {
@@ -158,6 +159,7 @@ export default function MusicPlayer() {
         aria-label={
           currentTrack ? (playing ? "暂停" : "播放") : "选择音乐"
         }
+        title={currentTrack ? "点击播放音乐" : "点击选择音乐"}
       >
         {currentTrack ? (
           <img
@@ -187,7 +189,14 @@ export default function MusicPlayer() {
             <Play className="h-5 w-5 translate-x-[1px]" />
           )}
         </span>
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-pink text-white shadow-apple-sm">
+          <Music className="h-3 w-3 animate-pulse" />
+        </span>
       </button>
+
+      <span className="pointer-events-none absolute left-1/2 top-[calc(50%+38px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[10px] font-medium text-ink-soft shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/80 sm:left-16 sm:top-1/2 sm:-translate-y-1/2">
+        {currentTrack ? (playing ? "正在播放" : "点击播放") : "点击选择音乐"}
+      </span>
 
       <div
         className={`absolute left-0 top-16 z-20 flex h-[104px] max-w-[calc(100vw-3rem)] items-center overflow-hidden rounded-full border border-white/60 bg-white/70 shadow-apple-hover backdrop-blur-2xl transition-all duration-300 ease-out dark:border-white/10 dark:bg-white/10 sm:left-16 sm:top-1/2 sm:h-24 sm:-translate-y-1/2 ${
@@ -315,7 +324,7 @@ export default function MusicPlayer() {
             PLAYLIST
           </p>
           <div className="max-h-64 space-y-1 overflow-y-auto">
-            {PLAYLIST.map((track, index) => {
+            {playlist.map((track, index) => {
               const active = index === trackIndex;
               return (
                 <button

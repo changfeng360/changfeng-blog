@@ -18,12 +18,14 @@ function json(data, status = 200) {
 export async function onRequestGet(context) {
   const { env } = context;
   try {
-    const [profile, projects, friends, site, photos, posts] = await Promise.all([
+    const [profile, projects, friends, site, photos, music, posts] =
+      await Promise.all([
       readJson(env, KV_KEYS.profile),
       readJson(env, KV_KEYS.projects),
       readJson(env, KV_KEYS.friends),
       readJson(env, KV_KEYS.site),
       readJson(env, KV_KEYS.photos),
+      readJson(env, KV_KEYS.music),
       readPosts(env),
     ]);
 
@@ -33,6 +35,7 @@ export async function onRequestGet(context) {
       friends: friends ?? undefined,
       site: site ?? undefined,
       photos: photos ?? undefined,
+      music: music ?? undefined,
       posts: kvAvailable(env) ? posts : undefined,
     });
   } catch (error) {

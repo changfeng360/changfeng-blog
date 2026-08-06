@@ -15,6 +15,7 @@ const DATA_FILES = {
   friends: "content/friends.json",
   site: "content/site.json",
   photos: "content/photos.json",
+  music: "content/music.json",
 };
 
 const KV_KEY_BY_NAME = {
@@ -23,6 +24,7 @@ const KV_KEY_BY_NAME = {
   friends: KV_KEYS.friends,
   site: KV_KEYS.site,
   photos: KV_KEYS.photos,
+  music: KV_KEYS.music,
 };
 
 function json(data, status = 200) {

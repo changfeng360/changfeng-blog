@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Music,
   Pencil,
   Plus,
   RefreshCw,
@@ -47,6 +48,7 @@ type SectionKey =
   | "projects"
   | "friends"
   | "photos"
+  | "music"
   | "guestbook"
   | "style";
 
@@ -80,7 +82,21 @@ type FriendModalState = {
 };
 
 type PhotoModalState = {
+  index: number | null;
   draft: Photo;
+};
+
+type AdminMusicTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  src: string;
+  cover: string;
+  duration: number;
+};
+
+type MusicModalState = {
+  draft: AdminMusicTrack;
 };
 
 type AdminGuestReply = {
@@ -107,6 +123,7 @@ const sectionMeta: Record<SectionKey, { label: string; eyebrow: string }> = {
   projects: { label: "项目管理", eyebrow: "PROJECTS" },
   friends: { label: "友链管理", eyebrow: "FRIENDS" },
   photos: { label: "照片墙", eyebrow: "PHOTOS" },
+  music: { label: "音乐管理", eyebrow: "MUSIC" },
   guestbook: { label: "留言管理", eyebrow: "GUESTBOOK" },
   style: { label: "站点样式", eyebrow: "STYLE" },
 };
@@ -240,6 +257,17 @@ function blankPhoto(): Photo {
   };
 }
 
+function blankMusic(): AdminMusicTrack {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: "",
+    artist: "",
+    src: "",
+    cover: "",
+    duration: 180,
+  };
+}
+
 function formatDate(value: string) {
   if (!value) {
     return "未设置";
@@ -303,6 +331,7 @@ export default function AdminConsole() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [musicTracks, setMusicTracks] = useState<AdminMusicTrack[]>([]);
   const [guestbookMessages, setGuestbookMessages] = useState<
     AdminGuestMessage[]
   >([]);
@@ -322,6 +351,7 @@ export default function AdminConsole() {
     null,
   );
   const [photoModal, setPhotoModal] = useState<PhotoModalState | null>(null);
+  const [musicModal, setMusicModal] = useState<MusicModalState | null>(null);
 
   async function api(
     path: string,
@@ -440,13 +470,21 @@ export default function AdminConsole() {
   }
 
   async function loadData(authToken: string) {
-    const [profileData, projectsData, friendsData, siteData, photosData] =
+    const [
+      profileData,
+      projectsData,
+      friendsData,
+      siteData,
+      photosData,
+      musicData,
+    ] =
       await Promise.all([
         api("profile", {}, authToken),
         api("data/projects", {}, authToken),
         api("data/friends", {}, authToken),
         api("data/site", {}, authToken),
         api("data/photos", {}, authToken),
+        api("data/music", {}, authToken),
       ]);
 
     setProfile(profileData as Profile);
@@ -454,6 +492,7 @@ export default function AdminConsole() {
     setProjects(projectsData as Project[]);
     setFriends(friendsData as Friend[]);
     setPhotos(photosData as Photo[]);
+    setMusicTracks(musicData as AdminMusicTrack[]);
     const site = siteData as SiteSettings;
     setSiteDraft({
       ...site,
@@ -702,14 +741,19 @@ export default function AdminConsole() {
     setSaving(true);
     setStatus("");
     try {
-      const next = [...photos, draft];
+      const next = [...photos];
+      if (photoModal.index === null) {
+        next.push(draft);
+      } else {
+        next[photoModal.index] = draft;
+      }
       await api("data/photos", {
         method: "PUT",
         body: JSON.stringify(next),
       });
       setPhotos(next);
       setPhotoModal(null);
-      setStatus("照片已添加");
+      setStatus(photoModal.index === null ? "照片已添加" : "照片已更新");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "保存失败");
     } finally {
@@ -738,6 +782,55 @@ export default function AdminConsole() {
       });
       setPhotos(next);
       setStatus("照片已删除");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "删除失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveMusic() {
+    if (!musicModal) {
+      return;
+    }
+    const draft = musicModal.draft;
+    if (!draft.title.trim() || !draft.src.trim()) {
+      setStatus("音乐标题和音频地址不能为空");
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const next = [...musicTracks, draft];
+      await api("data/music", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setMusicTracks(next);
+      setMusicModal(null);
+      setStatus("音乐已添加");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteMusic(index: number) {
+    const track = musicTracks[index];
+    if (!window.confirm(`确定删除音乐“${track.title}”吗？`)) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const next = musicTracks.filter((_, itemIndex) => itemIndex !== index);
+      await api("data/music", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setMusicTracks(next);
+      setStatus("音乐已删除");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "删除失败");
     } finally {
@@ -914,6 +1007,12 @@ export default function AdminConsole() {
       label: "照片墙",
       icon: Camera,
       count: photos.length,
+    },
+    {
+      key: "music",
+      label: "音乐",
+      icon: Music,
+      count: musicTracks.length,
     },
     {
       key: "guestbook",
@@ -1244,7 +1343,9 @@ export default function AdminConsole() {
                 action={
                   <PrimaryButton
                     icon={<Plus className="h-4 w-4" />}
-                    onClick={() => setPhotoModal({ draft: blankPhoto() })}
+                    onClick={() =>
+                      setPhotoModal({ index: null, draft: blankPhoto() })
+                    }
                   >
                     添加照片
                   </PrimaryButton>
@@ -1267,14 +1368,26 @@ export default function AdminConsole() {
                       <span className="truncate text-sm font-medium text-ink">
                         {photo.caption || "未命名照片"}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => deletePhoto(index)}
-                        className="icon-button !h-8 !w-8 shrink-0"
-                        aria-label="删除照片"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPhotoModal({ index, draft: { ...photo } })
+                          }
+                          className="icon-button !h-8 !w-8"
+                          aria-label="编辑照片"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deletePhoto(index)}
+                          className="icon-button !h-8 !w-8"
+                          aria-label="删除照片"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -1282,6 +1395,60 @@ export default function AdminConsole() {
               {photos.length === 0 ? (
                 <div className="glass rounded-4xl p-10 text-center text-sm text-ink-soft">
                   还没有照片，点击“添加照片”开始整理日常分享。
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {section === "music" ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="音乐管理"
+                description="管理首页音乐盒中的播放列表。"
+                action={
+                  <PrimaryButton
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={() => setMusicModal({ draft: blankMusic() })}
+                  >
+                    添加音乐
+                  </PrimaryButton>
+                }
+              />
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {musicTracks.map((track, index) => (
+                  <article
+                    key={track.id}
+                    className="glass rounded-4xl p-5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={track.cover}
+                        alt=""
+                        className="h-14 w-14 shrink-0 rounded-2xl border border-white/50 object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-ink">
+                          {track.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-ink-soft">
+                          {track.artist}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteMusic(index)}
+                        className="icon-button !h-8 !w-8 shrink-0"
+                        aria-label="删除音乐"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {musicTracks.length === 0 ? (
+                <div className="glass rounded-4xl p-10 text-center text-sm text-ink-soft">
+                  还没有音乐，点击“添加音乐”开始整理播放列表。
                 </div>
               ) : null}
             </section>
@@ -1822,7 +1989,7 @@ export default function AdminConsole() {
 
       <AdminModal
         open={Boolean(photoModal)}
-        title="添加照片"
+        title={photoModal?.index === null ? "添加照片" : "编辑照片"}
         onClose={() => setPhotoModal(null)}
       >
         {photoModal ? (
@@ -1842,6 +2009,7 @@ export default function AdminConsole() {
                   try {
                     const src = await compressPhoto(file);
                     setPhotoModal({
+                      index: photoModal.index,
                       draft: { ...photoModal.draft, src },
                     });
                   } catch (error) {
@@ -1865,6 +2033,7 @@ export default function AdminConsole() {
               value={photoModal.draft.src}
               onChange={(value) =>
                 setPhotoModal({
+                  index: photoModal.index,
                   draft: { ...photoModal.draft, src: value },
                 })
               }
@@ -1875,6 +2044,7 @@ export default function AdminConsole() {
               value={photoModal.draft.caption || ""}
               onChange={(value) =>
                 setPhotoModal({
+                  index: photoModal.index,
                   draft: { ...photoModal.draft, caption: value },
                 })
               }
@@ -1885,6 +2055,81 @@ export default function AdminConsole() {
               onSave={savePhoto}
               saving={saving}
             />
+          </div>
+        ) : null}
+      </AdminModal>
+
+      <AdminModal
+        open={Boolean(musicModal)}
+        title="添加音乐"
+        onClose={() => setMusicModal(null)}
+      >
+        {musicModal ? (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField
+              label="标题"
+              value={musicModal.draft.title}
+              onChange={(value) =>
+                setMusicModal({
+                  draft: { ...musicModal.draft, title: value },
+                })
+              }
+            />
+            <TextField
+              label="歌手"
+              value={musicModal.draft.artist}
+              onChange={(value) =>
+                setMusicModal({
+                  draft: { ...musicModal.draft, artist: value },
+                })
+              }
+            />
+            <TextField
+              label="音频地址"
+              value={musicModal.draft.src}
+              onChange={(value) =>
+                setMusicModal({
+                  draft: { ...musicModal.draft, src: value },
+                })
+              }
+              placeholder="/music/example.mp3 或 https://"
+              className="sm:col-span-2"
+            />
+            <TextField
+              label="封面地址"
+              value={musicModal.draft.cover}
+              onChange={(value) =>
+                setMusicModal({
+                  draft: { ...musicModal.draft, cover: value },
+                })
+              }
+              placeholder="/pixels/cover.jpg"
+            />
+            <NumberField
+              label="时长（秒）"
+              value={musicModal.draft.duration}
+              onChange={(value) =>
+                setMusicModal({
+                  draft: { ...musicModal.draft, duration: value },
+                })
+              }
+              min={1}
+              max={3600}
+            />
+            {musicModal.draft.cover ? (
+              <img
+                src={musicModal.draft.cover}
+                alt="封面预览"
+                className="max-h-40 w-full rounded-2xl border border-white/50 object-cover sm:col-span-2"
+              />
+            ) : null}
+            <div className="sm:col-span-2">
+              <ModalActions
+                onCancel={() => setMusicModal(null)}
+                onSave={saveMusic}
+                saving={saving}
+              />
+            </div>
           </div>
         ) : null}
       </AdminModal>
