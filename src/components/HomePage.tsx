@@ -250,20 +250,28 @@ export default function HomePage({
                 </span>
                 <span className="text-xs text-ink-soft">最新笔记</span>
               </div>
-              <p className="mt-4 text-lg font-semibold leading-snug text-ink">
-                {livePosts[0].title}
-              </p>
-              <RichText
-                content={livePosts[0].excerpt}
-                className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft"
-              />
-              <Link
-                href={`/article?slug=${encodeURIComponent(livePosts[0].slug)}`}
-                className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-medium text-accent-blue"
-              >
-                阅读全文
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              {livePosts[0] ? (
+                <>
+                  <p className="mt-4 text-lg font-semibold leading-snug text-ink">
+                    {livePosts[0].title}
+                  </p>
+                  <RichText
+                    content={livePosts[0].excerpt}
+                    className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft"
+                  />
+                  <Link
+                    href={`/article?slug=${encodeURIComponent(livePosts[0].slug)}`}
+                    className="mt-auto inline-flex items-center gap-1 pt-5 text-sm font-medium text-accent-blue"
+                  >
+                    阅读全文
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </>
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-sm text-ink-soft">
+                  还没有文章
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -364,9 +372,15 @@ export default function HomePage({
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {livePosts.slice(1, 4).map((post) => (
-              <PostCard key={post.slug} post={post} />
-            ))}
+            {livePosts.slice(1, 4).length > 0 ? (
+              livePosts.slice(1, 4).map((post) => (
+                <PostCard key={post.slug} post={post} />
+              ))
+            ) : (
+              <div className="glass rounded-4xl p-8 text-center text-sm text-ink-soft sm:col-span-2 lg:col-span-3">
+                暂无更多文章
+              </div>
+            )}
           </div>
         </motion.section>
 
