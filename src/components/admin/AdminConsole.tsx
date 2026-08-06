@@ -350,7 +350,7 @@ async function readId3Metadata(file: File) {
       return;
     }
     const encoding = payload[0];
-    let value = decodeId3Text(payload.subarray(1), encoding)
+    const value = decodeId3Text(payload.subarray(1), encoding)
       .replace(/\0.*$/s, "")
       .trim();
     if (major < 3 && id === "TT2") {
