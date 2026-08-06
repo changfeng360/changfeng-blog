@@ -17,14 +17,22 @@ export default function ArticleView({
   initialPost?: ArticlePost;
 }) {
   const [post, setPost] = useState<ArticlePost | null>(initialPost ?? null);
-  const runtime = useRuntimeContent();
+  const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
     const next = runtime.posts?.find((item) => item.slug === slug);
     if (next) {
       setPost(next);
     }
-  }, [runtime, slug]);
+  }, [runtime, loading, slug]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pb-8 pt-40 text-center sm:px-8">
+        <p className="text-sm text-ink-soft">内容加载中...</p>
+      </div>
+    );
+  }
 
   if (!post) {
     return (

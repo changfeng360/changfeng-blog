@@ -58,13 +58,13 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
     null,
   );
   const [range, setRange] = useState<RangeKey>("月");
-  const runtime = useRuntimeContent();
+  const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
     if (runtime.posts?.length) {
       setPostList(runtime.posts);
     }
-  }, [runtime]);
+  }, [runtime, loading]);
 
   const filtered = useMemo(() => {
     const cutoff = Date.now() - ranges[range] * 24 * 60 * 60 * 1000;
@@ -72,6 +72,16 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
   }, [postList, range]);
 
   const visible = filtered.length > 0 ? filtered : postList;
+
+  if (loading) {
+    return (
+      <div className="px-5 pb-8 pt-24 text-center sm:px-8">
+        <div className="glass mx-auto max-w-3xl rounded-4xl p-10 text-sm text-ink-soft">
+          内容加载中...
+        </div>
+      </div>
+    );
+  }
 
   const fields: AdminField[] = [
     { name: "title", label: "Title" },

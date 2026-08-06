@@ -52,13 +52,23 @@ export default function AboutPageContent({
   const [current, setCurrent] = useState(profile);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const runtime = useRuntimeContent();
+  const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
     if (runtime.profile) {
       setCurrent(runtime.profile);
     }
-  }, [runtime]);
+  }, [runtime, loading]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pb-8 pt-24 text-center sm:px-8">
+        <div className="glass mx-auto max-w-5xl rounded-4xl p-10 text-sm text-ink-soft">
+          内容加载中...
+        </div>
+      </div>
+    );
+  }
 
   const copyEmail = async () => {
     try {

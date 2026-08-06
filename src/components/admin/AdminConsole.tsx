@@ -5,6 +5,7 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import {
   BookOpenText,
+  Camera,
   ExternalLink,
   FolderKanban,
   Globe2,
@@ -24,7 +25,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import type { Friend, Post, Profile, Project } from "@/data/content";
+import type { Friend, Photo, Post, Profile, Project } from "@/data/content";
 import RichText from "@/components/RichText";
 import RichTextEditor from "@/components/RichTextEditor";
 import AdminModal from "./AdminModal";
@@ -45,6 +46,7 @@ type SectionKey =
   | "posts"
   | "projects"
   | "friends"
+  | "photos"
   | "guestbook"
   | "style";
 
@@ -76,6 +78,10 @@ type FriendModalState = {
   draft: Friend;
 };
 
+type PhotoModalState = {
+  draft: Photo;
+};
+
 type AdminGuestReply = {
   id: string;
   nickname: string;
@@ -99,6 +105,7 @@ const sectionMeta: Record<SectionKey, { label: string; eyebrow: string }> = {
   posts: { label: "文章管理", eyebrow: "POSTS" },
   projects: { label: "项目管理", eyebrow: "PROJECTS" },
   friends: { label: "友链管理", eyebrow: "FRIENDS" },
+  photos: { label: "照片墙", eyebrow: "PHOTOS" },
   guestbook: { label: "留言管理", eyebrow: "GUESTBOOK" },
   style: { label: "站点样式", eyebrow: "STYLE" },
 };
@@ -223,6 +230,15 @@ function blankFriend(): Friend {
   };
 }
 
+function blankPhoto(): Photo {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    src: "",
+    caption: "",
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function formatDate(value: string) {
   if (!value) {
     return "未设置";
@@ -232,6 +248,42 @@ function formatDate(value: string) {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressPhoto(file: File): Promise<string> {
+  if (file.size > 12 * 1024 * 1024) {
+    throw new Error("图片不能超过 12MB");
+  }
+  const source = await readFileAsDataUrl(file);
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error("图片读取失败"));
+    element.src = source;
+  });
+  const maxEdge = 1200;
+  const scale = Math.min(
+    1,
+    maxEdge / Math.max(image.naturalWidth, image.naturalHeight),
+  );
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("图片处理失败");
+  }
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/webp", 0.82);
 }
 
 export default function AdminConsole() {
@@ -249,6 +301,7 @@ export default function AdminConsole() {
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [guestbookMessages, setGuestbookMessages] = useState<
     AdminGuestMessage[]
   >([]);
@@ -267,6 +320,7 @@ export default function AdminConsole() {
   const [friendModal, setFriendModal] = useState<FriendModalState | null>(
     null,
   );
+  const [photoModal, setPhotoModal] = useState<PhotoModalState | null>(null);
 
   async function api(
     path: string,
@@ -385,18 +439,20 @@ export default function AdminConsole() {
   }
 
   async function loadData(authToken: string) {
-    const [profileData, projectsData, friendsData, siteData] =
+    const [profileData, projectsData, friendsData, siteData, photosData] =
       await Promise.all([
         api("profile", {}, authToken),
         api("data/projects", {}, authToken),
         api("data/friends", {}, authToken),
         api("data/site", {}, authToken),
+        api("data/photos", {}, authToken),
       ]);
 
     setProfile(profileData as Profile);
     setProfileDraft(profileData as Profile);
     setProjects(projectsData as Project[]);
     setFriends(friendsData as Friend[]);
+    setPhotos(photosData as Photo[]);
     setSiteDraft(siteData as SiteSettings);
     await loadGuestbook(authToken);
     await loadPosts(authToken);
@@ -629,6 +685,55 @@ export default function AdminConsole() {
     }
   }
 
+  async function savePhoto() {
+    if (!photoModal) {
+      return;
+    }
+    const draft = photoModal.draft;
+    if (!draft.src.trim()) {
+      setStatus("请添加图片");
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const next = [...photos, draft];
+      await api("data/photos", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setPhotos(next);
+      setPhotoModal(null);
+      setStatus("照片已添加");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deletePhoto(index: number) {
+    const photo = photos[index];
+    if (!window.confirm("确定删除这张照片吗？")) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const next = photos.filter((_, itemIndex) => itemIndex !== index);
+      await api("data/photos", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setPhotos(next);
+      setStatus("照片已删除");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "删除失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveSite() {
     if (!siteDraft) {
       return;
@@ -792,6 +897,12 @@ export default function AdminConsole() {
       label: "友链",
       icon: Globe2,
       count: friends.length,
+    },
+    {
+      key: "photos",
+      label: "照片墙",
+      icon: Camera,
+      count: photos.length,
     },
     {
       key: "guestbook",
@@ -1111,6 +1222,57 @@ export default function AdminConsole() {
                   />
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {section === "photos" ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="照片墙"
+                description="管理首页“日常分享”中的照片。"
+                action={
+                  <PrimaryButton
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={() => setPhotoModal({ draft: blankPhoto() })}
+                  >
+                    添加照片
+                  </PrimaryButton>
+                }
+              />
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {photos.map((photo, index) => (
+                  <article
+                    key={photo.id}
+                    className="glass overflow-hidden rounded-4xl"
+                  >
+                    <div className="aspect-[4/3] w-full bg-white/40 dark:bg-white/5">
+                      <img
+                        src={photo.src}
+                        alt={photo.caption || "日常分享"}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-4">
+                      <span className="truncate text-sm font-medium text-ink">
+                        {photo.caption || "未命名照片"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => deletePhoto(index)}
+                        className="icon-button !h-8 !w-8 shrink-0"
+                        aria-label="删除照片"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {photos.length === 0 ? (
+                <div className="glass rounded-4xl p-10 text-center text-sm text-ink-soft">
+                  还没有照片，点击“添加照片”开始整理日常分享。
+                </div>
+              ) : null}
             </section>
           ) : null}
 
@@ -1636,6 +1798,75 @@ export default function AdminConsole() {
           onSave={saveFriends}
           saving={saving}
         />
+      </AdminModal>
+
+      <AdminModal
+        open={Boolean(photoModal)}
+        title="添加照片"
+        onClose={() => setPhotoModal(null)}
+      >
+        {photoModal ? (
+          <div className="space-y-4">
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-white/60 bg-white/40 px-4 py-6 text-sm text-ink-soft backdrop-blur-xl hover:bg-white/60 dark:border-white/15 dark:bg-white/10">
+              <Plus className="h-4 w-4" />
+              选择图片上传
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) {
+                    return;
+                  }
+                  try {
+                    const src = await compressPhoto(file);
+                    setPhotoModal({
+                      draft: { ...photoModal.draft, src },
+                    });
+                  } catch (error) {
+                    setStatus(
+                      error instanceof Error ? error.message : "图片处理失败",
+                    );
+                  }
+                  event.target.value = "";
+                }}
+              />
+            </label>
+            {photoModal.draft.src ? (
+              <img
+                src={photoModal.draft.src}
+                alt="预览"
+                className="max-h-56 w-full rounded-2xl border border-white/50 object-cover"
+              />
+            ) : null}
+            <TextField
+              label="图片地址"
+              value={photoModal.draft.src}
+              onChange={(value) =>
+                setPhotoModal({
+                  draft: { ...photoModal.draft, src: value },
+                })
+              }
+              placeholder="https:// 或上传图片"
+            />
+            <TextField
+              label="说明（选填）"
+              value={photoModal.draft.caption || ""}
+              onChange={(value) =>
+                setPhotoModal({
+                  draft: { ...photoModal.draft, caption: value },
+                })
+              }
+              placeholder="给这张照片加一句备注"
+            />
+            <ModalActions
+              onCancel={() => setPhotoModal(null)}
+              onSave={savePhoto}
+              saving={saving}
+            />
+          </div>
+        ) : null}
       </AdminModal>
 
       <AdminModal

@@ -85,7 +85,7 @@ export function SettingsProvider({
   }, [settings.theme]);
 
   useEffect(() => {
-    fetch("/api/content")
+    fetch("/api/content", { cache: "no-store" })
       .then((response) => response.json().catch(() => ({})))
       .then((data: { site?: SiteSettingsFromApi }) => {
         const site = data.site;

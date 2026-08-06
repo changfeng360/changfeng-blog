@@ -3,6 +3,7 @@ export const KV_KEYS = {
   projects: "content:projects",
   friends: "content:friends",
   site: "content:site",
+  photos: "content:photos",
   posts: "content:posts",
   guestbook: "guestbook:messages",
 };

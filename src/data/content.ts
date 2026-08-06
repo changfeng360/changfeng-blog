@@ -29,6 +29,13 @@ export type Friend = {
   tags: string[];
 };
 
+export type Photo = {
+  id: string;
+  src: string;
+  caption?: string;
+  createdAt: string;
+};
+
 export type Profile = {
   name: string;
   location: string;

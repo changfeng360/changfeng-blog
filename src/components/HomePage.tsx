@@ -19,12 +19,13 @@ import CuteCat from "@/components/CuteCat";
 import MusicPlayer from "@/components/MusicPlayer";
 import PixelAvatar from "@/components/PixelAvatar";
 import PixelCalendar from "@/components/PixelCalendar";
+import PhotoWall from "@/components/PhotoWall";
 import PostCard from "@/components/PostCard";
 import Guestbook from "@/components/Guestbook";
 import RichText from "@/components/RichText";
 import ProfileEditor from "@/components/admin/ProfileEditor";
 import { useAdmin } from "@/components/admin/AdminContext";
-import type { Post, Profile } from "@/data/content";
+import type { Photo, Post, Profile, Project } from "@/data/content";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
@@ -43,13 +44,15 @@ export default function HomePage({
 }) {
   const { editMode } = useAdmin();
   const [livePosts, setLivePosts] = useState(posts);
+  const [livePhotos, setLivePhotos] = useState<Photo[]>([]);
+  const [liveProjects, setLiveProjects] = useState<Project[]>([]);
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [editingProfile, setEditingProfile] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
-  const runtime = useRuntimeContent();
+  const { content: runtime, loading } = useRuntimeContent();
   const quickLinks = [
-    { href: "/blog", label: "近期文章", meta: `${livePosts.length} notes`, icon: Package },
-    { href: "/projects", label: "项目档案", meta: "06 builds", icon: Star },
+    { href: "/blog", label: "近期文章", meta: `${String(livePosts.length).padStart(2, "0")} notes`, icon: Package },
+    { href: "/projects", label: "项目档案", meta: `${String(liveProjects.length).padStart(2, "0")} builds`, icon: Star },
     { href: "/about", label: "关于我", meta: "01 profile", icon: UserRound },
   ];
 
@@ -60,7 +63,25 @@ export default function HomePage({
     if (runtime.profile) {
       setCurrentProfile(runtime.profile);
     }
-  }, [runtime]);
+    if (runtime.photos) {
+      setLivePhotos(runtime.photos);
+    }
+    if (runtime.projects) {
+      setLiveProjects(runtime.projects);
+    }
+  }, [runtime, loading]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pb-8 pt-28 sm:px-8 sm:pt-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="glass rounded-5xl p-10 text-center text-sm text-ink-soft">
+            内容加载中...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const copyEmail = async () => {
     const email = currentProfile.email;
@@ -308,6 +329,13 @@ export default function HomePage({
                 STATUS: BUILDING / HAPPY
               </div>
             </div>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            className="glass min-h-[320px] rounded-4xl sm:col-span-2 lg:col-span-3"
+          >
+            <PhotoWall photos={livePhotos} />
           </motion.div>
         </motion.section>
 

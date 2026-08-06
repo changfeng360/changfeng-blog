@@ -9,6 +9,7 @@ function json(data, status = 200) {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
     },
   });
 }
@@ -16,11 +17,12 @@ function json(data, status = 200) {
 export async function onRequestGet(context) {
   const { env } = context;
   try {
-    const [profile, projects, friends, site, posts] = await Promise.all([
+    const [profile, projects, friends, site, photos, posts] = await Promise.all([
       readJson(env, KV_KEYS.profile),
       readJson(env, KV_KEYS.projects),
       readJson(env, KV_KEYS.friends),
       readJson(env, KV_KEYS.site),
+      readJson(env, KV_KEYS.photos),
       readPosts(env),
     ]);
 
@@ -29,6 +31,7 @@ export async function onRequestGet(context) {
       projects: projects ?? undefined,
       friends: friends ?? undefined,
       site: site ?? undefined,
+      photos: photos ?? undefined,
       posts: posts.length ? posts : undefined,
     });
   } catch (error) {

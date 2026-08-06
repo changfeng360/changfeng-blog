@@ -29,13 +29,13 @@ export default function SharePage() {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("全部");
-  const runtime = useRuntimeContent();
+  const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
     if (runtime.friends) {
       setFriends(runtime.friends);
     }
-  }, [runtime]);
+  }, [runtime, loading]);
 
   const categories = useMemo(
     () => ["全部", ...Array.from(new Set(friends.map((friend) => friend.category)))],
@@ -55,6 +55,16 @@ export default function SharePage() {
       return matchCategory && matchQuery;
     });
   }, [friends, query, category]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pb-8 pt-24 text-center sm:px-8">
+        <div className="glass mx-auto max-w-5xl rounded-4xl p-10 text-sm text-ink-soft">
+          内容加载中...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-8">
