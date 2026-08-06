@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   BookOpenText,
   Camera,
+  Coffee,
   ExternalLink,
   FolderKanban,
   Globe2,
@@ -49,6 +50,7 @@ type SectionKey =
   | "friends"
   | "photos"
   | "music"
+  | "now"
   | "guestbook"
   | "style";
 
@@ -124,6 +126,7 @@ const sectionMeta: Record<SectionKey, { label: string; eyebrow: string }> = {
   friends: { label: "友链管理", eyebrow: "FRIENDS" },
   photos: { label: "照片墙", eyebrow: "PHOTOS" },
   music: { label: "音乐管理", eyebrow: "MUSIC" },
+  now: { label: "最近在做", eyebrow: "NOW" },
   guestbook: { label: "留言管理", eyebrow: "GUESTBOOK" },
   style: { label: "站点样式", eyebrow: "STYLE" },
 };
@@ -1135,6 +1138,11 @@ export default function AdminConsole() {
       count: musicTracks.length,
     },
     {
+      key: "now",
+      label: "最近在做",
+      icon: Coffee,
+    },
+    {
       key: "guestbook",
       label: "留言",
       icon: MessageSquare,
@@ -1624,6 +1632,34 @@ export default function AdminConsole() {
             </section>
           ) : null}
 
+          {section === "now" && siteDraft ? (
+            <section className="space-y-5">
+              <SectionHeading
+                title="最近在做"
+                description="编辑首页 NOW 板块中的内容。"
+              />
+              <div className="glass rounded-4xl p-6 sm:p-8">
+                <StringListField
+                  label="最近在做"
+                  value={siteDraft.nowItems}
+                  onChange={(value) =>
+                    setSiteDraft({ ...siteDraft, nowItems: value })
+                  }
+                  placeholder="一行一件事"
+                />
+                <div className="mt-6">
+                  <PrimaryButton
+                    icon={<Save className="h-4 w-4" />}
+                    onClick={saveSite}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "保存"}
+                  </PrimaryButton>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           {section === "style" && siteDraft ? (
             <section className="space-y-5">
               <SectionHeading
@@ -1669,15 +1705,6 @@ export default function AdminConsole() {
                       onChange={(value) =>
                         setSiteDraft({ ...siteDraft, darkBackground: value })
                       }
-                    />
-                    <StringListField
-                      label="最近在做"
-                      value={siteDraft.nowItems}
-                      onChange={(value) =>
-                        setSiteDraft({ ...siteDraft, nowItems: value })
-                      }
-                      placeholder="一行一件事"
-                      className="sm:col-span-2"
                     />
                   </div>
                 <div className="mt-6 flex items-center gap-3">
