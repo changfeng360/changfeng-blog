@@ -1,5 +1,6 @@
 import {
   KV_KEYS,
+  kvAvailable,
   readJson,
 } from "./_lib/kv.js";
 import { readPosts } from "./_lib/posts.js";
@@ -32,7 +33,7 @@ export async function onRequestGet(context) {
       friends: friends ?? undefined,
       site: site ?? undefined,
       photos: photos ?? undefined,
-      posts: posts.length ? posts : undefined,
+      posts: kvAvailable(env) ? posts : undefined,
     });
   } catch (error) {
     return json({ error: error.message }, 500);

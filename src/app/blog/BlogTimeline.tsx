@@ -61,7 +61,7 @@ export default function BlogTimeline({ posts }: { posts: Post[] }) {
   const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
-    if (runtime.posts?.length) {
+    if (runtime.posts) {
       setPostList(runtime.posts);
     }
   }, [runtime, loading]);

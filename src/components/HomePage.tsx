@@ -57,7 +57,7 @@ export default function HomePage({
   ];
 
   useEffect(() => {
-    if (runtime.posts?.length) {
+    if (runtime.posts) {
       setLivePosts(runtime.posts);
     }
     if (runtime.profile) {

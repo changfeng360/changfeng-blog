@@ -20,9 +20,9 @@ export default function ArticleView({
   const { content: runtime, loading } = useRuntimeContent();
 
   useEffect(() => {
-    const next = runtime.posts?.find((item) => item.slug === slug);
-    if (next) {
-      setPost(next);
+    if (runtime.posts) {
+      const next = runtime.posts.find((item) => item.slug === slug);
+      setPost(next ?? null);
     }
   }, [runtime, loading, slug]);
 
