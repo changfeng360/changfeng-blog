@@ -288,6 +288,126 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(new Error("音频读取失败"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function decodeId3Text(bytes: Uint8Array, encoding: number) {
+  try {
+    if (encoding === 0) {
+      return new TextDecoder("windows-1252").decode(bytes);
+    }
+    if (encoding === 1) {
+      if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+        return new TextDecoder("utf-16le").decode(bytes.subarray(2));
+      }
+      if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+        return new TextDecoder("utf-16be").decode(bytes.subarray(2));
+      }
+      return new TextDecoder("utf-16le").decode(bytes);
+    }
+    if (encoding === 2) {
+      return new TextDecoder("utf-16be").decode(bytes);
+    }
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function readSyncSafeInt(bytes: Uint8Array) {
+  return (
+    ((bytes[0] & 0x7f) << 21) |
+    ((bytes[1] & 0x7f) << 14) |
+    ((bytes[2] & 0x7f) << 7) |
+    (bytes[3] & 0x7f)
+  );
+}
+
+async function readId3Metadata(file: File) {
+  const buffer = await readFileAsArrayBuffer(file);
+  const bytes = new Uint8Array(buffer);
+  if (
+    bytes.length < 10 ||
+    bytes[0] !== 0x49 ||
+    bytes[1] !== 0x44 ||
+    bytes[2] !== 0x33
+  ) {
+    return {};
+  }
+  const major = bytes[3];
+  const tagSize = readSyncSafeInt(bytes.subarray(6, 10));
+  const end = Math.min(bytes.length, 10 + tagSize);
+  const meta: { title?: string; artist?: string } = {};
+
+  const readFrame = (id: string, payload: Uint8Array) => {
+    if (payload.length < 1) {
+      return;
+    }
+    const encoding = payload[0];
+    let value = decodeId3Text(payload.subarray(1), encoding)
+      .replace(/\0.*$/s, "")
+      .trim();
+    if (major < 3 && id === "TT2") {
+      meta.title = value;
+    } else if (major < 3 && id === "TP1") {
+      meta.artist = value;
+    } else if (id === "TIT2") {
+      meta.title = value;
+    } else if (id === "TPE1") {
+      meta.artist = value;
+    }
+  };
+
+  let offset = 10;
+  while (offset + 6 <= end) {
+    if (major >= 3) {
+      if (offset + 10 > end) {
+        break;
+      }
+      const id = String.fromCharCode(
+        bytes[offset],
+        bytes[offset + 1],
+        bytes[offset + 2],
+        bytes[offset + 3],
+      );
+      const size =
+        major === 3
+          ? ((bytes[offset + 4] & 0xff) << 24) |
+            ((bytes[offset + 5] & 0xff) << 16) |
+            ((bytes[offset + 6] & 0xff) << 8) |
+            (bytes[offset + 7] & 0xff)
+          : readSyncSafeInt(bytes.subarray(offset + 4, offset + 8));
+      const payloadStart = offset + 10;
+      const payloadEnd = Math.min(end, payloadStart + size);
+      if (id.startsWith("T") && id !== "TXXX") {
+        readFrame(id, bytes.subarray(payloadStart, payloadEnd));
+      }
+      offset = payloadEnd;
+    } else {
+      const id = String.fromCharCode(
+        bytes[offset],
+        bytes[offset + 1],
+        bytes[offset + 2],
+      );
+      const size =
+        ((bytes[offset + 3] & 0xff) << 16) |
+        ((bytes[offset + 4] & 0xff) << 8) |
+        (bytes[offset + 5] & 0xff);
+      const payloadStart = offset + 6;
+      const payloadEnd = Math.min(end, payloadStart + size);
+      readFrame(id, bytes.subarray(payloadStart, payloadEnd));
+      offset = payloadEnd;
+    }
+  }
+  return meta;
+}
+
 async function compressPhoto(file: File): Promise<string> {
   if (file.size > 12 * 1024 * 1024) {
     throw new Error("图片不能超过 12MB");
@@ -2103,8 +2223,32 @@ export default function AdminConsole() {
                   }
                   try {
                     const src = await readFileAsDataUrl(file);
+                    const meta = (await readId3Metadata(file).catch(
+                      () => ({}),
+                    )) as { title?: string; artist?: string };
+                    let duration = musicModal.draft.duration;
+                    try {
+                      const probe = new Audio();
+                      probe.preload = "metadata";
+                      probe.src = src;
+                      await new Promise<void>((resolve, reject) => {
+                        probe.onloadedmetadata = () => resolve();
+                        probe.onerror = () => reject(new Error("metadata"));
+                      });
+                      duration =
+                        Math.round(probe.duration) || musicModal.draft.duration;
+                      probe.removeAttribute("src");
+                    } catch {
+                      // Keep the current duration when metadata is unavailable.
+                    }
                     setMusicModal({
-                      draft: { ...musicModal.draft, src },
+                      draft: {
+                        ...musicModal.draft,
+                        src,
+                        duration,
+                        title: meta.title || musicModal.draft.title,
+                        artist: meta.artist || musicModal.draft.artist,
+                      },
                     });
                   } catch (error) {
                     setStatus(
@@ -2123,6 +2267,32 @@ export default function AdminConsole() {
                 className="w-full sm:col-span-2"
               />
             ) : null}
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-white/60 bg-white/40 px-4 py-6 text-sm text-ink-soft backdrop-blur-xl hover:bg-white/60 dark:border-white/15 dark:bg-white/10 sm:col-span-2">
+              <Camera className="h-4 w-4" />
+              选择封面图片上传
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) {
+                    return;
+                  }
+                  try {
+                    const cover = await compressPhoto(file);
+                    setMusicModal({
+                      draft: { ...musicModal.draft, cover },
+                    });
+                  } catch (error) {
+                    setStatus(
+                      error instanceof Error ? error.message : "封面处理失败",
+                    );
+                  }
+                  event.target.value = "";
+                }}
+              />
+            </label>
             <TextField
               label="封面地址"
               value={musicModal.draft.cover}

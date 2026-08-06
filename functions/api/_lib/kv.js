@@ -6,6 +6,7 @@ export const KV_KEYS = {
   photos: "content:photos",
   music: "content:music",
   posts: "content:posts",
+  postReactions: "content:post-reactions",
   guestbook: "guestbook:messages",
 };
 
