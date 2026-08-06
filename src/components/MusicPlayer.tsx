@@ -189,12 +189,9 @@ export default function MusicPlayer() {
             <Play className="h-5 w-5 translate-x-[1px]" />
           )}
         </span>
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent-pink text-white shadow-apple-sm">
-          <Music className="h-3 w-3 animate-pulse" />
-        </span>
       </button>
 
-      <span className="pointer-events-none absolute left-1/2 top-[calc(50%+38px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[10px] font-medium text-ink-soft shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/80 sm:left-16 sm:top-1/2 sm:-translate-y-1/2">
+      <span className="pointer-events-none absolute left-1/2 top-[calc(50%-42px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[10px] font-medium text-ink-soft shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/80">
         {currentTrack ? (playing ? "正在播放" : "点击播放") : "点击选择音乐"}
       </span>
 
