@@ -2084,17 +2084,45 @@ export default function AdminConsole() {
                 })
               }
             />
-            <TextField
-              label="音频地址"
-              value={musicModal.draft.src}
-              onChange={(value) =>
-                setMusicModal({
-                  draft: { ...musicModal.draft, src: value },
-                })
-              }
-              placeholder="/music/example.mp3 或 https://"
-              className="sm:col-span-2"
-            />
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-white/60 bg-white/40 px-4 py-6 text-sm text-ink-soft backdrop-blur-xl hover:bg-white/60 dark:border-white/15 dark:bg-white/10 sm:col-span-2">
+              <Music className="h-4 w-4" />
+              选择 MP3 上传
+              <input
+                type="file"
+                accept="audio/mpeg,.mp3,audio/mp3"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) {
+                    return;
+                  }
+                  if (file.size > 12 * 1024 * 1024) {
+                    setStatus("MP3 不能超过 12MB");
+                    event.target.value = "";
+                    return;
+                  }
+                  try {
+                    const src = await readFileAsDataUrl(file);
+                    setMusicModal({
+                      draft: { ...musicModal.draft, src },
+                    });
+                  } catch (error) {
+                    setStatus(
+                      error instanceof Error ? error.message : "音频读取失败",
+                    );
+                  }
+                  event.target.value = "";
+                }}
+              />
+            </label>
+            {musicModal.draft.src ? (
+              <audio
+                src={musicModal.draft.src}
+                controls
+                preload="metadata"
+                className="w-full sm:col-span-2"
+              />
+            ) : null}
             <TextField
               label="封面地址"
               value={musicModal.draft.cover}

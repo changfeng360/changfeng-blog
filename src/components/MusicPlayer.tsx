@@ -191,7 +191,7 @@ export default function MusicPlayer() {
         </span>
       </button>
 
-      <span className="pointer-events-none absolute left-1/2 top-[calc(50%-42px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[10px] font-medium text-ink-soft shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/80">
+      <span className="pointer-events-none absolute left-7 top-[calc(50%-42px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/60 bg-white/75 px-2.5 py-1 text-[10px] font-medium text-ink-soft shadow-apple-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-white/80">
         {currentTrack ? (playing ? "正在播放" : "点击播放") : "点击选择音乐"}
       </span>
 
