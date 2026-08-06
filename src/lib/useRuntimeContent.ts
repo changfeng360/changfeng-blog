@@ -30,6 +30,7 @@ export type RuntimeContent = {
 };
 
 const CACHE_KEY = "changfeng-runtime-content-v1";
+let runtimeRequest: Promise<RuntimeContent> | null = null;
 
 function readCache(): RuntimeContent {
   if (typeof window === "undefined") {
@@ -55,36 +56,45 @@ function writeCache(content: RuntimeContent) {
   }
 }
 
+function fetchRuntimeContent() {
+  if (!runtimeRequest) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 6000);
+    runtimeRequest = fetch("/api/content", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => response.json().catch(() => ({})))
+      .then((data: RuntimeContent & { error?: string }) =>
+        data && !data.error ? data : {},
+      )
+      .catch(() => ({}))
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+        runtimeRequest = null;
+      });
+  }
+  return runtimeRequest;
+}
+
 export function useRuntimeContent() {
-  const [content, setContent] = useState<RuntimeContent>(readCache);
-  const [loading, setLoading] = useState(true);
+  const cached = readCache();
+  const [content, setContent] = useState<RuntimeContent>(cached);
+  const [loading, setLoading] = useState(
+    Object.keys(cached).length === 0,
+  );
 
   useEffect(() => {
     let active = true;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
-    setLoading(true);
-    fetch("/api/content", { cache: "no-store", signal: controller.signal })
-      .then((response) => response.json().catch(() => ({})))
-      .then((data: RuntimeContent & { error?: string }) => {
-        if (active && data && !data.error) {
-          setContent(data);
-          writeCache(data);
-        }
-      })
-      .catch(() => {
-        // Keep the static fallback when the API is unavailable.
-      })
-      .finally(() => {
-        window.clearTimeout(timeoutId);
-        if (active) {
-          setLoading(false);
-        }
-      });
+    fetchRuntimeContent().then((data) => {
+      if (active) {
+        setContent(data);
+        writeCache(data);
+        setLoading(false);
+      }
+    });
     return () => {
       active = false;
-      controller.abort();
-      window.clearTimeout(timeoutId);
     };
   }, []);
 

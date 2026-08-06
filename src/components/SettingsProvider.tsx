@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useRuntimeContent } from "@/lib/useRuntimeContent";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -56,6 +57,7 @@ export function SettingsProvider({
   children: React.ReactNode;
 }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const { content: runtime } = useRuntimeContent();
 
   useEffect(() => {
     setSettings(readStoredSettings());
@@ -85,36 +87,20 @@ export function SettingsProvider({
   }, [settings.theme]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
-    fetch("/api/content", { cache: "no-store", signal: controller.signal })
-      .then((response) => response.json().catch(() => ({})))
-      .then((data: { site?: SiteSettingsFromApi }) => {
-        const site = data.site;
-        if (!site) {
-          return;
-        }
-        const root = window.document.documentElement;
-        root.style.setProperty("--site-base-size", `${site.baseFontSize}px`);
-        root.style.setProperty("--site-accent", site.accentColor);
-        root.style.setProperty("--site-bg", site.backgroundColor);
-        root.style.setProperty("--site-dark-bg", site.darkBackground);
-        root.style.setProperty(
-          "--site-heading-style",
-          site.headingItalic ? "italic" : "normal",
-        );
-      })
-      .catch(() => {
-        // Keep the build-time site settings when the API is unavailable.
-      })
-      .finally(() => {
-        window.clearTimeout(timeoutId);
-      });
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
+    const site = runtime.site;
+    if (!site) {
+      return;
+    }
+    const root = window.document.documentElement;
+    root.style.setProperty("--site-base-size", `${site.baseFontSize}px`);
+    root.style.setProperty("--site-accent", site.accentColor);
+    root.style.setProperty("--site-bg", site.backgroundColor);
+    root.style.setProperty("--site-dark-bg", site.darkBackground);
+    root.style.setProperty(
+      "--site-heading-style",
+      site.headingItalic ? "italic" : "normal",
+    );
+  }, [runtime]);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -130,17 +116,6 @@ export function SettingsProvider({
     </SettingsContext.Provider>
   );
 }
-
-type SiteSettingsFromApi = {
-  baseFontSize: number;
-  headingItalic: boolean;
-  accentColor: string;
-  backgroundColor: string;
-  darkBackground: string;
-  nowItems?: string[];
-  sectionTitles?: Record<string, string>;
-  sectionSubtitles?: Record<string, string>;
-};
 
 export function useSettings() {
   const context = useContext(SettingsContext);
