@@ -403,7 +403,7 @@ export default function RichTextEditor({
     const selection = window.getSelection();
     const range =
       selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    if (!range || !range.collapsed) {
+    if (!selection || !range || !range.collapsed) {
       try {
         return {
           bold: document.queryCommandState("bold"),
